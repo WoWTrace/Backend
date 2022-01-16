@@ -122,6 +122,7 @@ namespace WoWTrace.Backend.Jobs
                             .Value(p => p.UpdatedAt, DateTime.Now)
                             .InsertWithIdentity();
 
+                        QueueManager.Instance.Publish(new ProcessRootMessage() { BuildId = id });
                         QueueManager.Instance.Publish(new ProcessExecutableMessage() { BuildId = id }, QueueManager.Instance.FastlineQueue);
                     }
                 }

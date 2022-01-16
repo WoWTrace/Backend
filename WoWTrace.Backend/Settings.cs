@@ -17,7 +17,7 @@ namespace WoWTrace.Backend
         private static string SavePath => Path.Combine(Environment.CurrentDirectory, "settings.json");
 
         [JsonIgnore]
-        private static readonly Lazy<Settings> lazy = new Lazy<Settings>(() => new Settings(), LazyThreadSafetyMode.PublicationOnly);
+        private static readonly Lazy<Settings> lazy = new Lazy<Settings>(() => new Settings(), LazyThreadSafetyMode.ExecutionAndPublication);
         
         [JsonIgnore]
         public static Settings Instance { get { return lazy.Value; } }
@@ -39,6 +39,9 @@ namespace WoWTrace.Backend
 
         [JsonPropertyName("dbConnectionString")]
         public string DBConnectionString { get; set; } = "Server=127.0.0.1;Port=3306;Database=wowtrace;Uid=root;Pwd=;";
+
+        [JsonPropertyName("dbBulkSize")]
+        public int DBBulkSize { get; set; } = 10000;
 
         [JsonPropertyName("queueConnectionString")]
         public string QueueConnectionString { get; set; } = @"Data Source=queue.db;Version=3;";

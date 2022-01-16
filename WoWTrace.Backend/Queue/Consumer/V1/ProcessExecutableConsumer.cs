@@ -44,7 +44,6 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
         private void HandleMessages(IReceivedMessage<ProcessExecutableMessage> message, IWorkerNotification notifications)
         {
             Build build = null;
-            // Check if build already exists in database
             using (var db = new WowtraceDB(Settings.Instance.DBConnectionOptions()))
             {
                 build = db.Builds.First(b => b.Id == message.Body.BuildId);
@@ -56,7 +55,7 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
                 return;
             }
 
-            Process(build);
+            Process(build, message.Body.Force);
         }
 
         public void Process(Build build, bool force = false)
