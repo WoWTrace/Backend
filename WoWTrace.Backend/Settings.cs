@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.IO;
 using LinqToDB.Configuration;
+using System.Threading;
 
 namespace WoWTrace.Backend
 {
@@ -16,7 +17,7 @@ namespace WoWTrace.Backend
         private static string SavePath => Path.Combine(Environment.CurrentDirectory, "settings.json");
 
         [JsonIgnore]
-        private static readonly Lazy<Settings> lazy = new Lazy<Settings>(() => new Settings());
+        private static readonly Lazy<Settings> lazy = new Lazy<Settings>(() => new Settings(), LazyThreadSafetyMode.PublicationOnly);
         
         [JsonIgnore]
         public static Settings Instance { get { return lazy.Value; } }
@@ -36,8 +37,12 @@ namespace WoWTrace.Backend
         [JsonPropertyName("cacheValidateFast")]
         public bool CacheValidateFast { get; set; } = true;
 
-        [JsonPropertyName("connectionString")]
-        public string ConnectionString { get; set; } = "Server=127.0.0.1;Port=3306;Database=wowtrace.net;Uid=root;Pwd=;";
+        [JsonPropertyName("dbConnectionString")]
+        public string DBConnectionString { get; set; } = "Server=127.0.0.1;Port=3306;Database=wowtrace.net;Uid=root;Pwd=;";
+
+        [JsonPropertyName("queueConnectionString")]
+        public string QueueConnectionString { get; set; } = @"Data Source=queue.db;Version=3;";
+
 
         private Settings()
         {
@@ -56,7 +61,7 @@ namespace WoWTrace.Backend
         public LinqToDbConnectionOptions DBConnectionOptions()
         {
             LinqToDbConnectionOptionsBuilder builder = new LinqToDbConnectionOptionsBuilder();
-            builder.UseMySql(ConnectionString);
+            builder.UseMySql(DBConnectionString);
 
             return builder.Build();
         }

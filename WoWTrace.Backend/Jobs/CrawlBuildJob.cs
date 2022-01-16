@@ -8,6 +8,8 @@ using WoWTrace.Backend.Casc;
 using WoWTrace.Backend.DataModels;
 using Logger = NLog.Logger;
 using LinqToDB;
+using WoWTrace.Backend.Queue;
+using WoWTrace.Backend.Queue.Message;
 
 namespace WoWTrace.Backend.Jobs
 {
@@ -94,7 +96,7 @@ namespace WoWTrace.Backend.Jobs
                             throw new Exception($"Cant find size systemfile by content hash {sizeContentHash} in encoding file {cascConfig.EncodingMD5.ToHexString().ToLower()}");
                     }
 
-                    db.Builds
+                    ulong id = (ulong)db.Builds
                         .Value(p => p.BuildConfig, versionData["BuildConfig"])
                         .Value(p => p.CdnConfig, versionData["CDNConfig"])
                         .Value(p => p.PatchConfig, cascConfig.Builds[cascConfig.ActiveBuild]["patch-config"]?[0] ?? null)
@@ -117,9 +119,11 @@ namespace WoWTrace.Backend.Jobs
                         .Value(p => p.SizeCdnHash, (sizeCdnHash.highPart != 0 ? sizeCdnHash.ToHexString().ToLower() : null))
                         .Value(p => p.CreatedAt, DateTime.Now)
                         .Value(p => p.UpdatedAt, DateTime.Now)
-                        .Insert();
+                        .InsertWithIdentity();
 
+                    QueueManager.Instance.Publish(new ProcessExecutableMessage() { BuildId = id }, QueueManager.Instance.FastlineQueue);
                 }
+
             } catch (Exception ex)
             {
                 logger.Warn($"Cant process product {product.ProductColumn}:\n {ex.Message}");

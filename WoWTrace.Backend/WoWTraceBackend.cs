@@ -2,6 +2,7 @@
 using FluentScheduler;
 using NLog;
 using WoWTrace.Backend.Jobs;
+using WoWTrace.Backend.Queue;
 using Logger = NLog.Logger;
 
 namespace WoWTrace.Backend
@@ -12,6 +13,7 @@ namespace WoWTrace.Backend
 
         public WoWTraceBackend()
         {
+            QueueManager.Instance.Initialize();
             InitializeCache();
             InitializeJobs();
         }
@@ -29,6 +31,8 @@ namespace WoWTrace.Backend
         {
             JobManager.Initialize();
             JobManager.AddJob<CrawlBuildJob>(s => s.NonReentrant().ToRunEvery(5).Minutes());
+
+            (new CrawlBuildJob()).Execute();
         }
     }
 }

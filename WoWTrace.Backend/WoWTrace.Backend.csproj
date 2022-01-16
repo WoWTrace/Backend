@@ -6,6 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DotNetWorkQueue" Version="0.6.4" />
+    <PackageReference Include="DotNetWorkQueue.Transport.SQLite" Version="0.6.4" />
     <PackageReference Include="FluentScheduler" Version="5.5.1" />
     <PackageReference Include="linq2db" Version="4.0.0-preview.10" />
     <PackageReference Include="linq2db.MySql" Version="4.0.0-preview.9-fixed" />
