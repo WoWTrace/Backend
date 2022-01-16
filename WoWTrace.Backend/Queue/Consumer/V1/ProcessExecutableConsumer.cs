@@ -2,15 +2,12 @@
 using DotNetWorkQueue.Transport.SQLite.Basic;
 using System;
 using System.Threading;
-using System.Threading.Tasks;
-using WoWTrace.Backend.Queue.Message;
+using WoWTrace.Backend.Queue.Message.V1;
 
-namespace WoWTrace.Backend.Queue.Consumer
+namespace WoWTrace.Backend.Queue.Consumer.V1
 {
     public class ProcessExecutableConsumer : IConsumer
     {
-        public int BuildId;
-
         public void Listen()
         {
             using (var schedulerContainer = new SchedulerContainer())

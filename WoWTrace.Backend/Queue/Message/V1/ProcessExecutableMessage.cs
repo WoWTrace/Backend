@@ -1,4 +1,4 @@
-﻿namespace WoWTrace.Backend.Queue.Message
+﻿namespace WoWTrace.Backend.Queue.Message.V1
 {
     public class ProcessExecutableMessage
     {

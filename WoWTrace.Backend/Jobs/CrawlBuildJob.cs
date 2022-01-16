@@ -1,15 +1,15 @@
 ﻿using CASCLib;
 using FluentScheduler;
+using LinqToDB;
 using NLog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using WoWTrace.Backend.Casc;
 using WoWTrace.Backend.DataModels;
-using Logger = NLog.Logger;
-using LinqToDB;
 using WoWTrace.Backend.Queue;
-using WoWTrace.Backend.Queue.Message;
+using WoWTrace.Backend.Queue.Message.V1;
+using Logger = NLog.Logger;
 
 namespace WoWTrace.Backend.Jobs
 {
@@ -21,8 +21,8 @@ namespace WoWTrace.Backend.Jobs
         {
             logger.Info("Start Crawl builds");
             List<Product> productList;
-            
-            using(var db = new WowtraceNetDB(Settings.Instance.DBConnectionOptions()))
+
+            using (var db = new WowtraceNetDB(Settings.Instance.DBConnectionOptions()))
             {
                 productList = db.Products.Select(p => p).ToList();
             }
@@ -124,7 +124,8 @@ namespace WoWTrace.Backend.Jobs
                     QueueManager.Instance.Publish(new ProcessExecutableMessage() { BuildId = id }, QueueManager.Instance.FastlineQueue);
                 }
 
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 logger.Warn($"Cant process product {product.ProductColumn}:\n {ex.Message}");
             }
