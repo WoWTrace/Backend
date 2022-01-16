@@ -2,10 +2,11 @@
 using System;
 using System.IO;
 using System.Linq;
+using WoWTrace.Backend.DataModels;
 
 namespace WoWTrace.Backend.Casc
 {
-    public sealed class CASCHandlerWoWTrace : CASCHandlerBase
+    public sealed class CASCHandlerWoWTrace : CASCHandlerBase, IDisposable
     {
         public EncodingHandler Encoding;
         public WowRootHandler Root;
@@ -62,6 +63,13 @@ namespace WoWTrace.Backend.Casc
         public static CASCHandlerWoWTrace OpenOnlineStorage(string product, bool loadOnlyEncoding = false, LocaleFlags? locale = null, string region = "us", BackgroundWorkerEx worker = null)
         {
             CASCConfig config = CASCConfig.LoadOnlineStorageConfig(product, region);
+
+            return Open(config, loadOnlyEncoding, locale, worker);
+        }
+
+        public static CASCHandlerWoWTrace OpenOnlineStorageWithBuild(Build build, bool loadOnlyEncoding = false, LocaleFlags? locale = null, string region = "us", BackgroundWorkerEx worker = null)
+        {
+            CASCConfigWoWTrace config = CASCConfigWoWTrace.LoadOnlineStorageConfigWithBuild(build, region);
 
             return Open(config, loadOnlyEncoding, locale, worker);
         }
@@ -201,6 +209,17 @@ namespace WoWTrace.Backend.Casc
         protected override Stream GetLocalDataStream(in MD5Hash key)
         {
             throw new NotImplementedException();
+        }
+
+        public void Dispose()
+        {
+            Encoding?.Clear();
+            Root?.Clear();
+            Install?.Clear();
+            LocalIndex?.Clear();
+            CDNIndex?.Clear();
+
+            GC.Collect();
         }
     }
 }

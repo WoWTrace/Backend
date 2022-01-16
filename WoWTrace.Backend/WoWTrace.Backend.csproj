@@ -20,9 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="DataModel\WowtraceNetDB.tt">
+    <None Update="DataModel\WowtraceDB.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>WowtraceNetDB.cs</LastGenOutput>
+      <LastGenOutput>WowtraceDB.cs</LastGenOutput>
     </None>
     <None Update="NLog.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -34,10 +34,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="DataModel\WowtraceNetDB.cs">
+    <Compile Update="DataModel\WowtraceDB.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>WowtraceNetDB.tt</DependentUpon>
+      <DependentUpon>WowtraceDB.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 

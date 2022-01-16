@@ -45,7 +45,7 @@
 
 	// to configure GetSchemaOptions properties, add them here, before load metadata call
 
-	LoadMySqlMetadata("127.0.0.1", "wowtrace.net", "root", "");
+	LoadMySqlMetadata("127.0.0.1", "wowtrace", "root", "");
     //LoadMySqlMetadata(string connectionString);
 
 	// to adjust loaded database model before generation, add your code here, after load metadata, but before GenerateModel() call

@@ -1,8 +1,11 @@
 ﻿using CASCLib;
 using FluentScheduler;
 using NLog;
+using System.Linq;
+using WoWTrace.Backend.DataModels;
 using WoWTrace.Backend.Jobs;
 using WoWTrace.Backend.Queue;
+using WoWTrace.Backend.Queue.Consumer.V1;
 using Logger = NLog.Logger;
 
 namespace WoWTrace.Backend

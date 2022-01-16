@@ -38,7 +38,7 @@ namespace WoWTrace.Backend
         public bool CacheValidateFast { get; set; } = true;
 
         [JsonPropertyName("dbConnectionString")]
-        public string DBConnectionString { get; set; } = "Server=127.0.0.1;Port=3306;Database=wowtrace.net;Uid=root;Pwd=;";
+        public string DBConnectionString { get; set; } = "Server=127.0.0.1;Port=3306;Database=wowtrace;Uid=root;Pwd=;";
 
         [JsonPropertyName("queueConnectionString")]
         public string QueueConnectionString { get; set; } = @"Data Source=queue.db;Version=3;";

@@ -18,11 +18,11 @@ using LinqToDB.Mapping;
 namespace WoWTrace.Backend.DataModels
 {
 	/// <summary>
-	/// Database       : wowtrace.net
+	/// Database       : wowtrace
 	/// Data Source    : 127.0.0.1
 	/// Server Version : 5.5.5-10.3.32-MariaDB-0ubuntu0.20.04.1
 	/// </summary>
-	public partial class WowtraceNetDB : LinqToDB.Data.DataConnection
+	public partial class WowtraceDB : LinqToDB.Data.DataConnection
 	{
 		public ITable<Attachment>          Attachments          { get { return this.GetTable<Attachment>(); } }
 		public ITable<Attachmentable>      Attachmentables      { get { return this.GetTable<Attachmentable>(); } }
@@ -42,27 +42,27 @@ namespace WoWTrace.Backend.DataModels
 		public ITable<RoleUser>            RoleUsers            { get { return this.GetTable<RoleUser>(); } }
 		public ITable<User>                Users                { get { return this.GetTable<User>(); } }
 
-		public WowtraceNetDB()
+		public WowtraceDB()
 		{
 			InitDataContext();
 			InitMappingSchema();
 		}
 
-		public WowtraceNetDB(string configuration)
+		public WowtraceDB(string configuration)
 			: base(configuration)
 		{
 			InitDataContext();
 			InitMappingSchema();
 		}
 
-		public WowtraceNetDB(LinqToDbConnectionOptions options)
+		public WowtraceDB(LinqToDbConnectionOptions options)
 			: base(options)
 		{
 			InitDataContext();
 			InitMappingSchema();
 		}
 
-		public WowtraceNetDB(LinqToDbConnectionOptions<WowtraceNetDB> options)
+		public WowtraceDB(LinqToDbConnectionOptions<WowtraceDB> options)
 			: base(options)
 		{
 			InitDataContext();
