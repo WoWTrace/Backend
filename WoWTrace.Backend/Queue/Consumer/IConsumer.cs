@@ -10,7 +10,7 @@ namespace WoWTrace.Backend.Queue.Consumer
     public interface IConsumer
     {
         public void Listen();
-        public bool AlreadyProcessedCheck(Build build);
-        public void MarkAsProcessed(Build build);
+        public bool AlreadyProcessedCheck(ulong buildId);
+        public void MarkAsProcessed(ulong buildId);
     }
 }

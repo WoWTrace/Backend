@@ -1,14 +1,11 @@
 ﻿using CASCLib;
 using DotNetWorkQueue;
 using DotNetWorkQueue.Transport.SQLite.Basic;
-using LinqToDB;
 using LinqToDB.Data;
 using NLog;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using WoWTrace.Backend.Casc;
 using WoWTrace.Backend.DataModels;
@@ -26,7 +23,7 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
         {
             using (var queueContainer = new QueueContainer<SqLiteMessageQueueInit>())
             {
-                using (var queue = queueContainer.CreateConsumer(QueueManager.Instance.FastlineQueue))
+                using (var queue = queueContainer.CreateConsumer(QueueManager.Instance.RootV1Queue))
                 {
                     queue.Start<ProcessRootMessage>(HandleMessages);
                     Thread.Sleep(Timeout.Infinite);
@@ -53,7 +50,9 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
 
         public void Process(Build build, bool force = false)
         {
-            if (!force && AlreadyProcessedCheck(build))
+            logger.Trace($"Build process Build {build.Id}");
+
+            if (!force && AlreadyProcessedCheck(build.Id))
             {
                 logger.Trace($"Build {build.Id} already processed");
                 return;
@@ -78,7 +77,7 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
                     int fileDataId = cascHandler.Root.GetFileDataIdByHash(rootEntry.Key);
                     long fileSize = cascHandler.GetFileSize(rootEntry.Value.MD5);
 
-                    listFileQueryCache.Add(new Listfile() { Id = (ulong)fileDataId, Lookup = lookup, Verified = false, CreatedAt = DateTime.Now, UpdatedAt = DateTime.Now});
+                    listFileQueryCache.Add(new Listfile() { Id = (ulong)fileDataId, Lookup = lookup, Verified = false, CreatedAt = DateTime.Now, UpdatedAt = DateTime.Now });
                     listFileBuildQueryCache.Add(new ListfileBuild() { Id = (ulong)fileDataId, BuildId = build.Id });
                     listFileVersionQueryCache.Add(new ListfileVersion()
                     {
@@ -99,7 +98,7 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
                 }
             }
 
-            MarkAsProcessed(build);
+            MarkAsProcessed(build.Id);
         }
 
         private void SaveBulk(ref List<Listfile> listFileQueryCache, ref List<ListfileBuild> listFileBuildQueryCache, ref List<ListfileVersion> listFileVersionQueryCache)
@@ -108,8 +107,8 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
             using (var db = new WowtraceDB(Settings.Instance.DBConnectionOptions()))
             {
                 db.MultiInsertOnDuplicateUpdateRaw(db.Listfiles, listFileQueryCache, new List<string>() { "`lookup` = IF(values(`lookup`) IS NOT NULL, values(`lookup`), `lookup`)" }, new BulkCopyOptions() { KeepIdentity = true });
-                db.MultiInsertIgnore(db.ListfileBuilds, listFileBuildQueryCache, new BulkCopyOptions() { KeepIdentity = true});
-                db.MultiInsertIgnore(db.ListfileVersions, listFileVersionQueryCache, new BulkCopyOptions() { KeepIdentity = true});
+                db.MultiInsertIgnore(db.ListfileBuilds, listFileBuildQueryCache, new BulkCopyOptions() { KeepIdentity = true });
+                db.MultiInsertIgnore(db.ListfileVersions, listFileVersionQueryCache, new BulkCopyOptions() { KeepIdentity = true });
             }
 
             listFileQueryCache.Clear();

@@ -12,6 +12,7 @@ namespace WoWTrace.Backend.Casc
         public WowRootHandler Root;
         public InstallHandler Install;
         protected LocaleFlags? locale;
+        protected static object instanceLock = new object();
 
         private CASCHandlerWoWTrace(CASCConfig config, bool loadOnlyEncoding = false, LocaleFlags? locale = null, BackgroundWorkerEx worker = null) : base(config, worker)
         {
@@ -192,6 +193,14 @@ namespace WoWTrace.Backend.Casc
             if (CASCConfig.ThrowOnFileNotFound)
                 throw new FileNotFoundException($"{hash:X16}");
             return null;
+        }
+
+        public override Stream OpenFile(in MD5Hash key)
+        {
+            lock (instanceLock)
+            {
+                return base.OpenFile(key);
+            }
         }
 
         public override void SaveFileTo(ulong hash, string extractPath, string fullName)

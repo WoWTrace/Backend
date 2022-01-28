@@ -31,7 +31,7 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
                     factory.Scheduler.Start();
                     using (var queueContainer = new QueueContainer<SqLiteMessageQueueInit>())
                     {
-                        using (var queue = queueContainer.CreateConsumerQueueScheduler(QueueManager.Instance.FastlineQueue, factory))
+                        using (var queue = queueContainer.CreateConsumerQueueScheduler(QueueManager.Instance.ExecutableV1Queue, factory))
                         {
                             queue.Start<ProcessExecutableMessage>(HandleMessages);
                             Thread.Sleep(Timeout.Infinite);
@@ -55,12 +55,20 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
                 return;
             }
 
+            if (build.CompiledAt != null)
+            {
+                logger.Trace("Build has already compiledAt date");
+                return;
+            }
+
             Process(build, message.Body.Force);
         }
 
         public void Process(Build build, bool force = false)
         {
-            if (!force && AlreadyProcessedCheck(build))
+            logger.Trace($"Build process Build {build.Id}");
+
+            if (!force && AlreadyProcessedCheck(build.Id))
             {
                 logger.Trace($"Build {build.Id} already processed");
                 return;
@@ -104,7 +112,7 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
                 return;
             }
 
-            MarkAsProcessed(build);
+            MarkAsProcessed(build.Id);
         }
 
         private Stream OpenExecutable(Build build)
@@ -135,7 +143,6 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
 
                     return cascHandler.OpenFile(eKey);
                 }
-
             }
 
             return null;

@@ -5,22 +5,21 @@ using System;
 using System.Linq;
 using System.Threading;
 using WoWTrace.Backend.Queue.Consumer;
-using WoWTrace.Backend.Queue.Message;
 
 namespace WoWTrace.Backend.Queue
 {
     public sealed class QueueManager
     {
-        public QueueConnection MainlineQueue;
-        public QueueConnection FastlineQueue;
+        public QueueConnection RootV1Queue;
+        public QueueConnection ExecutableV1Queue;
         private static Lazy<QueueManager> lazy = new Lazy<QueueManager>(() => new QueueManager(), LazyThreadSafetyMode.ExecutionAndPublication);
 
         public static QueueManager Instance { get { return lazy.Value; } }
 
         private QueueManager()
         {
-            MainlineQueue = CreateQueue("mainlineQueue", Settings.Instance.QueueConnectionString);
-            FastlineQueue = CreateQueue("fastlineQueue", Settings.Instance.QueueConnectionString);
+            RootV1Queue = CreateQueue("rootV1Queue", Settings.Instance.QueueConnectionString);
+            ExecutableV1Queue = CreateQueue("executableV1Queue", Settings.Instance.QueueConnectionString);
 
             InitializeConsumer();
         }
@@ -55,21 +54,22 @@ namespace WoWTrace.Backend.Queue
                 (new Thread(() => { consumer.Listen(); })).Start();
 
 
-            (new Thread(() => { 
+            (new Thread(() =>
+            {
                 Thread.Sleep(5000);
-                
+
 
             })).Start();
 
-            
+
 
             var a = 2;
         }
 
-        public void Publish<T>(T message, QueueConnection queueConnection = null) where T : class
+        public void Publish<T>(T message, QueueConnection queueConnection) where T : class
         {
             using (var queueContainer = new QueueContainer<SqLiteMessageQueueInit>())
-            using (var queue = queueContainer.CreateProducer<T>(queueConnection ?? Instance.MainlineQueue))
+            using (var queue = queueContainer.CreateProducer<T>(queueConnection))
             {
                 queue.Send(message);
             }

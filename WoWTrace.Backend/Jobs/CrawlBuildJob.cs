@@ -77,6 +77,8 @@ namespace WoWTrace.Backend.Jobs
 
                 using (CASCHandlerWoWTrace cascHandler = CASCHandlerWoWTrace.Open(cascConfig, true))
                 {
+                    ulong? id = null;
+
                     // Save new build
                     using (var db = new WowtraceDB(Settings.Instance.DBConnectionOptions()))
                     {
@@ -97,7 +99,7 @@ namespace WoWTrace.Backend.Jobs
                                 throw new Exception($"Cant find size systemfile by content hash {sizeContentHash} in encoding file {cascConfig.EncodingMD5.ToHexString().ToLower()}");
                         }
 
-                        ulong id = (ulong)db.Builds
+                        id = (ulong)db.Builds
                             .Value(p => p.BuildConfig, versionData["BuildConfig"])
                             .Value(p => p.CdnConfig, versionData["CDNConfig"])
                             .Value(p => p.PatchConfig, cascConfig.Builds[cascConfig.ActiveBuild]["patch-config"]?[0] ?? null)
@@ -120,11 +122,14 @@ namespace WoWTrace.Backend.Jobs
                             .Value(p => p.SizeCdnHash, (sizeCdnHash.highPart != 0 ? sizeCdnHash.ToHexString().ToLower() : null))
                             .Value(p => p.CreatedAt, DateTime.Now)
                             .Value(p => p.UpdatedAt, DateTime.Now)
-                            .InsertWithIdentity();
-
-                        QueueManager.Instance.Publish(new ProcessRootMessage() { BuildId = id });
-                        QueueManager.Instance.Publish(new ProcessExecutableMessage() { BuildId = id }, QueueManager.Instance.FastlineQueue);
+                            .InsertWithInt64Identity();
                     }
+
+                    if (id == null)
+                        throw new Exception($"Cant insert build {cascConfig.EncodingMD5.ToHexString().ToLower()} into database");
+
+                    ProcessRootMessage.Publish(id.Value);
+                    ProcessExecutableMessage.Publish(id.Value);
                 }
             }
             catch (Exception ex)
