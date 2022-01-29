@@ -1,6 +1,4 @@
-﻿using DotNetWorkQueue;
-using FluentScheduler;
-using NLog;
+﻿using FluentScheduler;
 using System;
 using System.Linq;
 using WoWTrace.Backend.DataModels;
@@ -10,14 +8,11 @@ using WoWTrace.Backend.Queue;
 using WoWTrace.Backend.Queue.Attribute;
 using WoWTrace.Backend.Queue.Message;
 using static WoWTrace.Backend.Program;
-using Logger = NLog.Logger;
 
 namespace WoWTrace.Backend
 {
     class WoWTraceBackend
     {
-        private static Logger logger = LogManager.GetCurrentClassLogger();
-
         public WoWTraceBackend(Options options)
         {
             QueueManager.Instance.Initialize();
@@ -29,7 +24,7 @@ namespace WoWTrace.Backend
 
         private void InitializeJobs(bool enqueueAllBuildsEveryFiveHours = false)
         {
-#if (!DEBUG)
+#if (RELEASE)
             JobManager.Initialize();
             JobManager.AddJob<CrawlBuildJob>(s => s.NonReentrant().ToRunEvery(5).Minutes());
             
@@ -41,7 +36,7 @@ namespace WoWTrace.Backend
             if (enqueueAllBuildsEveryFiveHours)
                 EnqueueAllBuilds();
 
-            logger.Info("Finish debug crawl build job run!");
+            logger.Info("Finish debug run!");
 #endif
         }
 
@@ -57,7 +52,7 @@ namespace WoWTrace.Backend
                         .SelectMany(messages => messages.GetTypes())
                         .Where(typeof(IQueueMessage).IsAssignableFrom)
                         .Where(messageType => !messageType.IsInterface)
-                        .Where(messageType => (string)messageType.GetCustomAttributes<MessageType>().Type == MessageType.TypeBuild)
+                        .Where(messageType => messageType.GetCustomAttributes<MessageType>().Type == MessageType.TypeBuild)
                         .Select(patchInstance => (IQueueMessage)Activator.CreateInstance(patchInstance, build.Id, false))
                         .ToArray();
 
