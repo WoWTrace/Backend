@@ -1,15 +1,27 @@
-﻿using DotNetWorkQueue.Configuration;
+﻿using WoWTrace.Backend.Queue.Attribute;
 
 namespace WoWTrace.Backend.Queue.Message.V1
 {
-    public class ProcessExecutableMessage
+    [MessageType(MessageType.TypeBuild)]
+    public class ProcessExecutableMessage : IQueueMessage
     {
         public ulong BuildId;
         public bool Force = false;
 
+        public ProcessExecutableMessage(ulong buildId, bool force = false)
+        {
+            BuildId = buildId;
+            Force = force;
+        }
+
         public static void Publish(ulong buildId, bool force = false)
         {
-            QueueManager.Instance.Publish(new ProcessExecutableMessage() { BuildId = buildId, Force = force }, QueueManager.Instance.ExecutableV1Queue);
+            (new ProcessExecutableMessage(buildId, force)).PublishMessage();
+        }
+
+        public void PublishMessage()
+        {
+            QueueManager.Instance.Publish(this, QueueManager.Instance.ExecutableV1Queue);
         }
     }
 }

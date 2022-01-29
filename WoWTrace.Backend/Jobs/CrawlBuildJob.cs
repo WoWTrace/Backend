@@ -1,14 +1,17 @@
-﻿using CASCLib;
-using FluentScheduler;
+﻿using FluentScheduler;
 using LinqToDB;
 using NLog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using WoWTrace.Backend.Casc;
+using TACT.Net;
+using TACT.Net.Configs;
+using TACT.Net.Encoding;
+using TACT.Net.Network;
 using WoWTrace.Backend.DataModels;
-using WoWTrace.Backend.Queue;
+using WoWTrace.Backend.Exceptions;
 using WoWTrace.Backend.Queue.Message.V1;
+using WoWTrace.Backend.Tact;
 using Logger = NLog.Logger;
 
 namespace WoWTrace.Backend.Jobs
@@ -23,9 +26,7 @@ namespace WoWTrace.Backend.Jobs
             List<Product> productList;
 
             using (var db = new WowtraceDB(Settings.Instance.DBConnectionOptions()))
-            {
                 productList = db.Products.Select(p => p).ToList();
-            }
 
             foreach (var product in productList)
                 ProcessProductByName(product);
@@ -35,102 +36,108 @@ namespace WoWTrace.Backend.Jobs
         {
             logger.Info($"Process product {product.ProductColumn}");
 
+            ManifestContainer manifest = null;
+            ConfigContainer configContainer = null;
+            CDNClient cdnClient = null;
+            EncodingFile encoding = null;
+            string remoteCacheDirectory = (Settings.Instance.CacheEnabled ? TactHandler.CachePath : null);
+
             try
             {
-                var versionData = GetVersionDataByProduct(product.ProductColumn);
+                manifest = GetManifestByProduct(product.ProductColumn, Locale.EU, remoteCacheDirectory);
                 bool hasBuild = true;
+
+                if (manifest.BuildConfigMD5.Value == null)
+                    throw new Exception("Cant read build config!");
 
                 // Check if build already exists in database
                 using (var db = new WowtraceDB(Settings.Instance.DBConnectionOptions()))
-                {
-                    hasBuild = db.Builds.Any(b => b.BuildConfig == versionData["BuildConfig"]);
-                }
+                    hasBuild = db.Builds.Any(build => build.BuildConfig == manifest.BuildConfigMD5.ToString());
 
                 if (hasBuild)
-                {
-                    logger.Trace("Build already exists");
-                    Console.WriteLine(" "); // new line
-                    return;
-                }
+                    throw new SkipException($"Build {manifest.BuildConfigMD5} already exists");
 
                 // Update product
                 using (var db = new WowtraceDB(Settings.Instance.DBConnectionOptions()))
                 {
-                    product.LastBuildConfig = versionData["BuildConfig"];
-                    product.LastVersion = versionData["VersionsName"];
+                    product.LastBuildConfig = manifest.BuildConfigMD5.ToString();
+                    product.LastVersion = manifest.VersionsName;
                     product.Detected = DateTime.Now;
                     db.Update(product);
                 }
 
                 // Skip encrypted builds to prevent useless error messages in log
                 if (product.Encrypted)
+                    throw new SkipException($"Skip encrypted build {manifest.BuildConfigMD5}");
+
+                configContainer = new ConfigContainer();
+                cdnClient = new CDNClient(manifest, false, remoteCacheDirectory);
+
+                configContainer.OpenRemote(manifest, remoteCacheDirectory);
+
+                if (configContainer.EncodingEKey.Value == null)
+                    throw new Exception($"Cant find encoding systemfile by Ekey {configContainer.EncodingEKey} in buildConfig {manifest.BuildConfigMD5}");
+
+                ulong? id = null;
+                encoding = new EncodingFile(cdnClient, configContainer.EncodingEKey, true);
+
+                if (!encoding.TryGetCKeyEntry(configContainer.RootCKey, out EncodingContentEntry rootEncodingEntry))
+                    throw new Exception($"Cant find root systemfile by CKey {configContainer.RootCKey} in encoding file (EKey: {configContainer.EncodingEKey})");
+
+                if (!encoding.TryGetCKeyEntry(configContainer.InstallCKey, out EncodingContentEntry installEncodingEntry))
+                    throw new Exception($"Cant find install systemfile by CKey {configContainer.InstallCKey} in encoding file (EKey: {configContainer.EncodingEKey})");
+
+                if (!encoding.TryGetCKeyEntry(configContainer.DownloadCKey, out EncodingContentEntry downloadEncodingEntry))
+                    throw new Exception($"Cant find download systemfile by CKey {configContainer.DownloadCKey} in encoding file (EKey: {configContainer.EncodingEKey})");
+
+                string sizeCKey = null;
+                string sizeEKey = null;
+                if (configContainer.DownloadSizeCKey.Value != null && encoding.TryGetCKeyEntry(configContainer.DownloadSizeCKey, out EncodingContentEntry sizeEncodingEntry))
                 {
-                    logger.Trace("Skip encrypted build");
-                    Console.WriteLine(" "); // new line
-                    return;
+                    sizeCKey = sizeEncodingEntry.CKey.ToString();
+                    sizeEKey = sizeEncodingEntry.EKeys.First().ToString();
                 }
 
-                var version = Version.Parse(versionData["VersionsName"]);
+                Version version = Version.Parse(manifest.VersionsName);
 
-                // Get build config and casc handler
-                var cascConfig = CASCConfig.LoadOnlineStorageConfig(product.ProductColumn, "us", false);
-
-                using (CASCHandlerWoWTrace cascHandler = CASCHandlerWoWTrace.Open(cascConfig, true))
+                // Save new build
+                using (var db = new WowtraceDB(Settings.Instance.DBConnectionOptions()))
                 {
-                    ulong? id = null;
-
-                    // Save new build
-                    using (var db = new WowtraceDB(Settings.Instance.DBConnectionOptions()))
-                    {
-                        if (!cascHandler.GetEncodingKey(cascConfig.RootMD5, out MD5Hash rootCdnHash))
-                            throw new Exception($"Cant find root systemfile by content hash {cascConfig.RootMD5.ToHexString().ToLower()} in encoding file {cascConfig.EncodingMD5.ToHexString().ToLower()}");
-
-                        if (!cascHandler.GetEncodingKey(cascConfig.InstallMD5, out MD5Hash installCdnHash))
-                            throw new Exception($"Cant find install systemfile by content hash {cascConfig.InstallMD5.ToHexString().ToLower()} in encoding file {cascConfig.EncodingMD5.ToHexString().ToLower()}");
-
-                        if (!cascHandler.GetEncodingKey(cascConfig.DownloadMD5, out MD5Hash downloadCdnHash))
-                            throw new Exception($"Cant find download systemfile by content hash {cascConfig.DownloadMD5.ToHexString().ToLower()} in encoding file {cascConfig.EncodingMD5.ToHexString().ToLower()}");
-
-                        string? sizeContentHash = cascConfig.Builds[cascConfig.ActiveBuild]["size"][0] ?? null;
-                        MD5Hash sizeCdnHash = new MD5Hash();
-                        if (sizeContentHash != null)
-                        {
-                            if (!cascHandler.GetEncodingKey(sizeContentHash.FromHexString().ToMD5(), out sizeCdnHash))
-                                throw new Exception($"Cant find size systemfile by content hash {sizeContentHash} in encoding file {cascConfig.EncodingMD5.ToHexString().ToLower()}");
-                        }
-
-                        id = (ulong)db.Builds
-                            .Value(p => p.BuildConfig, versionData["BuildConfig"])
-                            .Value(p => p.CdnConfig, versionData["CDNConfig"])
-                            .Value(p => p.PatchConfig, cascConfig.Builds[cascConfig.ActiveBuild]["patch-config"]?[0] ?? null)
-                            .Value(p => p.ProductConfig, versionData["ProductConfig"] ?? null)
+                    id = (ulong)db.Builds
+                            .Value(p => p.BuildConfig, manifest.BuildConfigMD5.ToString())
+                            .Value(p => p.CdnConfig, manifest.CDNConfigMD5.ToString())
+                            .Value(p => p.PatchConfig, configContainer.PatchConfigMD5.Value != null ? configContainer.PatchConfigMD5.ToString() : null)
+                            .Value(p => p.ProductConfig, manifest.ProductConfig)
                             .Value(p => p.ProductKey, product.ProductColumn)
                             .Value(p => p.Expansion, version.Major.ToString())
                             .Value(p => p.Major, version.Minor.ToString())
                             .Value(p => p.Minor, version.Build.ToString())
                             .Value(p => p.ClientBuild, (uint)version.Revision)
-                            .Value(p => p.Name, cascConfig.BuildName ?? $"WOW-{version.Revision}patch{version.Major}.{version.Minor}.{version.Build}")
-                            .Value(p => p.EncodingContentHash, cascConfig.EncodingMD5.ToHexString().ToLower())
-                            .Value(p => p.EncodingCdnHash, cascConfig.EncodingKey.ToHexString().ToLower())
-                            .Value(p => p.RootContentHash, cascConfig.RootMD5.ToHexString().ToLower())
-                            .Value(p => p.RootCdnHash, rootCdnHash.ToHexString().ToLower())
-                            .Value(p => p.InstallContentHash, cascConfig.InstallMD5.ToHexString().ToLower())
-                            .Value(p => p.InstallCdnHash, installCdnHash.ToHexString().ToLower())
-                            .Value(p => p.DownloadContentHash, cascConfig.DownloadMD5.ToHexString().ToLower())
-                            .Value(p => p.DownloadCdnHash, downloadCdnHash.ToHexString().ToLower())
-                            .Value(p => p.SizeContentHash, sizeContentHash ?? null)
-                            .Value(p => p.SizeCdnHash, (sizeCdnHash.highPart != 0 ? sizeCdnHash.ToHexString().ToLower() : null))
+                            .Value(p => p.Name, configContainer.BuildConfig.GetValue("build-name") ?? $"WOW-{version.Revision}patch{version.Major}.{version.Minor}.{version.Build}")
+                            .Value(p => p.EncodingContentHash, configContainer.EncodingCKey.ToString())
+                            .Value(p => p.EncodingCdnHash, configContainer.EncodingEKey.ToString())
+                            .Value(p => p.RootContentHash, configContainer.RootCKey.ToString())
+                            .Value(p => p.RootCdnHash, rootEncodingEntry.EKeys.First().ToString())
+                            .Value(p => p.InstallContentHash, configContainer.InstallCKey.ToString())
+                            .Value(p => p.InstallCdnHash, installEncodingEntry.EKeys.First().ToString())
+                            .Value(p => p.DownloadContentHash, configContainer.DownloadCKey.ToString())
+                            .Value(p => p.DownloadCdnHash, downloadEncodingEntry.EKeys.First().ToString())
+                            .Value(p => p.SizeContentHash, sizeCKey)
+                            .Value(p => p.SizeCdnHash, sizeEKey)
                             .Value(p => p.CreatedAt, DateTime.Now)
                             .Value(p => p.UpdatedAt, DateTime.Now)
                             .InsertWithInt64Identity();
-                    }
-
-                    if (id == null)
-                        throw new Exception($"Cant insert build {cascConfig.EncodingMD5.ToHexString().ToLower()} into database");
-
-                    ProcessRootMessage.Publish(id.Value);
-                    ProcessExecutableMessage.Publish(id.Value);
                 }
+
+                if (id == null)
+                    throw new Exception($"Cant insert build {manifest.BuildConfigMD5} into database");
+
+                ProcessRootMessage.Publish(id.Value);
+                ProcessExecutableMessage.Publish(id.Value);
+            }
+            catch (SkipException ex)
+            {
+                logger.Trace(ex.Message);
             }
             catch (Exception ex)
             {
@@ -138,30 +145,23 @@ namespace WoWTrace.Backend.Jobs
             }
 
             Console.WriteLine(" "); // new line
+
+            encoding?.Close();
+            cdnClient = null;
+            configContainer = null;
+            manifest = null;
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
         }
 
-        private Dictionary<string, string> GetVersionDataByProduct(string product, string region = "us")
+        private ManifestContainer GetManifestByProduct(string product, Locale locale = Locale.EU, string remoteCacheDirectory = null)
         {
-            VerBarConfig versionsData;
-            int versionsIndex = 0;
+            ManifestContainer manifest = new ManifestContainer(product, Locale.EU);
+            manifest.OpenRemote(remoteCacheDirectory);
 
-            var a = (new RibbitClient(region)).Get($"v1/products/{product}/versions");
-            using (var ribbit = new RibbitClient(region))
-            using (var versionsStream = ribbit.GetAsStream($"v1/products/{product}/versions"))
-            {
-                versionsData = VerBarConfig.ReadVerBarConfig(versionsStream);
-            }
-
-            for (int i = 0; i < versionsData.Count; ++i)
-            {
-                if (versionsData[i]["Region"] == region)
-                {
-                    versionsIndex = i;
-                    break;
-                }
-            }
-
-            return versionsData[versionsIndex];
+            return manifest;
         }
     }
 }

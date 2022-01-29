@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "WoWTrace.Backend": {
+      "commandName": "Project",
+      "commandLineArgs": "--enqueueAllBuilds"
+    }
+  }
+}

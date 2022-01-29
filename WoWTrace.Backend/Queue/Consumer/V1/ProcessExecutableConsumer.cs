@@ -1,5 +1,4 @@
-﻿using CASCLib;
-using DotNetWorkQueue;
+﻿using DotNetWorkQueue;
 using DotNetWorkQueue.Transport.SQLite.Basic;
 using LinqToDB;
 using NLog;
@@ -9,9 +8,10 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
-using WoWTrace.Backend.Casc;
+using TACT.Net.Common;
 using WoWTrace.Backend.DataModels;
 using WoWTrace.Backend.Queue.Message.V1;
+using WoWTrace.Backend.Tact;
 using Logger = NLog.Logger;
 
 namespace WoWTrace.Backend.Queue.Consumer.V1
@@ -51,13 +51,14 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
 
             if (build == null)
             {
-                logger.Error($"Cant find Build for id {message.Body.BuildId}");
+                logger.Error($"Cant find build by id {message.Body.BuildId}");
                 return;
             }
 
             if (build.CompiledAt != null)
             {
-                logger.Trace("Build has already compiledAt date");
+                logger.Trace($"Build {message.Body.BuildId} has already compiledAt date");
+                MarkAsProcessed(build.Id);
                 return;
             }
 
@@ -66,13 +67,13 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
 
         public void Process(Build build, bool force = false)
         {
-            logger.Trace($"Build process Build {build.Id}");
-
             if (!force && AlreadyProcessedCheck(build.Id))
             {
                 logger.Trace($"Build {build.Id} already processed");
                 return;
             }
+
+            logger.Trace($"Process build {build.Id}");
 
             bool builtDateFound = false;
             string pattern = @"Exe\s+Built:\s+(\w{3}\s+\d{1,2}\s+\d{4}\s+\d{2}:\d{2}:\d{2})";
@@ -117,31 +118,32 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
 
         private Stream OpenExecutable(Build build)
         {
-            using (CASCHandlerWoWTrace cascHandler = CASCHandlerWoWTrace.OpenOnlineStorageWithBuild(build))
+            using (TactHandler tact = new TactHandler(build))
             {
                 List<string> executableNames = new List<string>()
                 {
-                    // Mainline
-                    "Wow.exe", "WowT.exe", "WowB.exe",
-                    // Classic
-                    "WowClassic.exe", "WowClassicT.exe", "WowClassicB.exe",
-                    // Old 64-bit specific builds
+                    // PTR
+                    "WowT.exe", "WowClassicT.exe",
+                    // Retail
+                    "Wow.exe", "WowClassic.exe",
+                    // Beta
+                    "WowB.exe", "WowClassicB.exe",
+                    // Old 64-bit builds
                     "Wow-64.exe", "WowT-64.exe", "WowB-64.exe",
                 };
 
                 foreach (string executableName in executableNames)
                 {
-                    var executableInstallEntries = cascHandler.Install.GetEntriesByName(executableName);
-
-                    if (!executableInstallEntries.Any())
+                    if (!tact.Repo.InstallFile.TryGet(executableName, out var installEntry))
                         continue;
 
-                    cascHandler.GetEncodingKey(executableInstallEntries.First().MD5, out MD5Hash eKey);
-
-                    if (eKey.highPart == 0)
+                    if (!tact.Repo.EncodingFile.TryGetCKeyEntry(installEntry.CKey, out var encodingEntry))
                         continue;
 
-                    return cascHandler.OpenFile(eKey);
+                    if (!encodingEntry.EKeys.Any())
+                        continue;
+
+                    return tact.Repo.IndexContainer.OpenFile(encodingEntry.EKeys.First());
                 }
             }
 

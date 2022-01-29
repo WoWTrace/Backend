@@ -1,15 +1,27 @@
-﻿using DotNetWorkQueue.Configuration;
+﻿using WoWTrace.Backend.Queue.Attribute;
 
 namespace WoWTrace.Backend.Queue.Message.V1
 {
-    public class ProcessRootMessage
+    [MessageType(MessageType.TypeBuild)]
+    public class ProcessRootMessage : IQueueMessage
     {
         public ulong BuildId;
         public bool Force = false;
 
+        public ProcessRootMessage(ulong buildId, bool force = false)
+        {
+            BuildId = buildId;
+            Force = force;
+        }
+
         public static void Publish(ulong buildId, bool force = false)
         {
-            QueueManager.Instance.Publish(new ProcessRootMessage() { BuildId = buildId, Force = force }, QueueManager.Instance.RootV1Queue);
+            QueueManager.Instance.Publish(new ProcessRootMessage(buildId, force), QueueManager.Instance.RootV1Queue);
+        }
+
+        public void PublishMessage()
+        {
+            QueueManager.Instance.Publish(this, QueueManager.Instance.RootV1Queue);
         }
     }
 }

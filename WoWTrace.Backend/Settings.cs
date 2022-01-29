@@ -26,16 +26,7 @@ namespace WoWTrace.Backend
         public bool CacheEnabled { get; set; } = true;
 
         [JsonPropertyName("cacheDir")]
-        public string CachePath { get; set; } = "data";
-
-        [JsonPropertyName("cacheData")]
-        public bool CacheData { get; set; } = false;
-
-        [JsonPropertyName("cacheValidate")]
-        public bool CacheValidate { get; set; } = true;
-
-        [JsonPropertyName("cacheValidateFast")]
-        public bool CacheValidateFast { get; set; } = true;
+        public string CachePath { get; set; } = "cache";
 
         [JsonPropertyName("dbConnectionString")]
         public string DBConnectionString { get; set; } = "Server=127.0.0.1;Port=3306;Database=wowtrace;Uid=root;Pwd=;";
@@ -44,7 +35,7 @@ namespace WoWTrace.Backend
         public int DBBulkSize { get; set; } = 10000;
 
         [JsonPropertyName("queueConnectionString")]
-        public string QueueConnectionString { get; set; } = @"Data Source=queue.db;Version=3;";
+        public string QueueConnectionString { get; set; } = @"FullUri=file:queue.db3?mode=memory&cache=shared;Version=3;";
 
 
         private Settings()

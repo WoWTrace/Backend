@@ -1,5 +1,4 @@
-﻿using CASCLib;
-using DotNetWorkQueue;
+﻿using DotNetWorkQueue;
 using DotNetWorkQueue.Transport.SQLite.Basic;
 using LinqToDB.Data;
 using NLog;
@@ -7,10 +6,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using WoWTrace.Backend.Casc;
+using TACT.Net.Root;
 using WoWTrace.Backend.DataModels;
-using WoWTrace.Backend.Extension;
+using WoWTrace.Backend.Extensions;
 using WoWTrace.Backend.Queue.Message.V1;
+using WoWTrace.Backend.Tact;
 using Logger = NLog.Logger;
 
 namespace WoWTrace.Backend.Queue.Consumer.V1
@@ -41,7 +41,7 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
 
             if (build == null)
             {
-                logger.Error($"Cant find Build for id {message.Body.BuildId}");
+                logger.Error($"Cant find build for id {message.Body.BuildId}");
                 return;
             }
 
@@ -50,54 +50,60 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
 
         public void Process(Build build, bool force = false)
         {
-            logger.Trace($"Build process Build {build.Id}");
-
             if (!force && AlreadyProcessedCheck(build.Id))
             {
                 logger.Trace($"Build {build.Id} already processed");
                 return;
             }
 
+            logger.Trace($"Process Build {build.Id}");
+
+            long rootEntryCount = 0;
             List<Listfile> listFileQueryCache = new List<Listfile>();
             List<ListfileBuild> listFileBuildQueryCache = new List<ListfileBuild>();
             List<ListfileVersion> listFileVersionQueryCache = new List<ListfileVersion>();
 
-            using (CASCHandlerWoWTrace cascHandler = CASCHandlerWoWTrace.OpenOnlineStorageWithBuild(build, false, LocaleFlags.enUS))
+            using (TactHandler tact = new TactHandler(build))
             {
-                foreach (var rootEntry in cascHandler.Root.GetAllEntries())
+                foreach (var rootBlock in tact.Repo.RootFile.GetAllBlocks())
                 {
-                    // Skip chinese models
-                    if (rootEntry.Value.ContentFlags.HasFlag(ContentFlags.Alternate) || !rootEntry.Value.LocaleFlags.HasFlag(LocaleFlags.enUS))
+                    // Skip chinese and non enUS blocks
+                    if (rootBlock.ContentFlags.HasFlag(ContentFlags.LowViolence) || !rootBlock.LocaleFlags.HasFlag(LocaleFlags.enUS))
                         continue;
 
-                    string lookup = null;
-                    if (!rootEntry.Value.ContentFlags.HasFlag(ContentFlags.NoNameHash))
-                        lookup = string.Format("{0:X}", rootEntry.Key).ToLower();
-
-                    int fileDataId = cascHandler.Root.GetFileDataIdByHash(rootEntry.Key);
-                    long fileSize = cascHandler.GetFileSize(rootEntry.Value.MD5);
-
-                    listFileQueryCache.Add(new Listfile() { Id = (ulong)fileDataId, Lookup = lookup, Verified = false, CreatedAt = DateTime.Now, UpdatedAt = DateTime.Now });
-                    listFileBuildQueryCache.Add(new ListfileBuild() { Id = (ulong)fileDataId, BuildId = build.Id });
-                    listFileVersionQueryCache.Add(new ListfileVersion()
+                    foreach (var rootRecord in rootBlock.Records)
                     {
-                        Id = (ulong)fileDataId,
-                        ContentHash = rootEntry.Value.MD5.ToHexString().ToLower(),
-                        Encrypted = rootEntry.Value.ContentFlags.HasFlag(ContentFlags.Encrypted),
-                        FileSize = (uint)fileSize,
-                        FirstBuildId = build.Id,
-                        ClientBuild = build.ClientBuild,
-                        CreatedAt = DateTime.Now,
-                        UpdatedAt = DateTime.Now
-                    });
+                        string lookup = null;
+                        if (!rootBlock.ContentFlags.HasFlag(ContentFlags.NoNameHash))
+                            lookup = string.Format("{0:X}", rootRecord.Value.NameHash).ToLower();
 
-                    if (listFileQueryCache.Count >= Settings.Instance.DBBulkSize)
-                    {
-                        SaveBulk(ref listFileQueryCache, ref listFileBuildQueryCache, ref listFileVersionQueryCache);
+                        ulong? fileSize = null;
+
+                        if (tact.Repo.EncodingFile.TryGetCKeyEntry(rootRecord.Value.CKey, out var encodingEntry))
+                            fileSize = encodingEntry.DecompressedSize;
+
+                        listFileQueryCache.Add(new Listfile() { Id = rootRecord.Value.FileId, Lookup = lookup, Verified = false, CreatedAt = DateTime.Now, UpdatedAt = DateTime.Now });
+                        listFileBuildQueryCache.Add(new ListfileBuild() { Id = rootRecord.Value.FileId, BuildId = build.Id });
+                        listFileVersionQueryCache.Add(new ListfileVersion()
+                        {
+                            Id = rootRecord.Value.FileId,
+                            ContentHash = rootRecord.Value.CKey.ToString(),
+                            Encrypted = rootBlock.ContentFlags.HasFlag(ContentFlags.Encrypted),
+                            FileSize = (uint?)fileSize.Value,
+                            FirstBuildId = build.Id,
+                            ClientBuild = build.ClientBuild,
+                            CreatedAt = DateTime.Now,
+                            UpdatedAt = DateTime.Now
+                        });
+
+                        rootEntryCount++;
+                        if (listFileQueryCache.Count >= Settings.Instance.DBBulkSize)
+                            SaveBulk(ref listFileQueryCache, ref listFileBuildQueryCache, ref listFileVersionQueryCache);
                     }
                 }
             }
 
+            logger.Trace($"Processed {rootEntryCount} root entries in build {build.Id}");
             MarkAsProcessed(build.Id);
         }
 

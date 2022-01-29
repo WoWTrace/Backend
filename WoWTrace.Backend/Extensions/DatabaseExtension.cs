@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using WoWTrace.Backend.DataModels;
 
-namespace WoWTrace.Backend.Extension
+namespace WoWTrace.Backend.Extensions
 {
     public static class DatabaseExtension
     {
