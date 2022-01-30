@@ -92,6 +92,7 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
                             FileSize = (uint?)fileSize.Value,
                             FirstBuildId = build.Id,
                             ClientBuild = build.ClientBuild,
+                            ProcessedBy = "[]",
                             CreatedAt = DateTime.Now,
                             UpdatedAt = DateTime.Now
                         });

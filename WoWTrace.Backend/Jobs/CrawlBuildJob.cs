@@ -124,6 +124,7 @@ namespace WoWTrace.Backend.Jobs
                             .Value(p => p.DownloadCdnHash, downloadEncodingEntry.EKeys.First().ToString())
                             .Value(p => p.SizeContentHash, sizeCKey)
                             .Value(p => p.SizeCdnHash, sizeEKey)
+                            .Value(p => p.ProcessedBy, "[]")
                             .Value(p => p.CreatedAt, DateTime.Now)
                             .Value(p => p.UpdatedAt, DateTime.Now)
                             .InsertWithInt64Identity();
