@@ -19,9 +19,9 @@ namespace WoWTrace.Backend
 
         [JsonIgnore]
         private static readonly Lazy<Settings> lazy = new Lazy<Settings>(() => {
-            var settings = new Settings();
             if (!File.Exists(SavePath))
             {
+                var settings = new Settings();
                 settings.Save();
                 return settings;
             }
