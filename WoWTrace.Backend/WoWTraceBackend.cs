@@ -1,4 +1,5 @@
 ﻿using FluentScheduler;
+using NLog;
 using System;
 using System.Linq;
 using WoWTrace.Backend.DataModels;
@@ -13,6 +14,8 @@ namespace WoWTrace.Backend
 {
     class WoWTraceBackend
     {
+        private Logger logger = LogManager.GetCurrentClassLogger();
+
         public WoWTraceBackend(Options options)
         {
             QueueManager.Instance.Initialize();

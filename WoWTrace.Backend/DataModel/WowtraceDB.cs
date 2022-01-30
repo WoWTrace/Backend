@@ -307,7 +307,10 @@ namespace WoWTrace.Backend.DataModels
 		[Column("contentHash"),  PrimaryKey(2), NotNull] public string    ContentHash  { get; set; } // char(32)
 		[Column("encrypted"),                   NotNull] public bool      Encrypted    { get; set; } // tinyint(1)
 		[Column("fileSize"),        Nullable           ] public uint?     FileSize     { get; set; } // int(10) unsigned
-		[Column("processed"),                   NotNull] public bool      Processed    { get; set; } // tinyint(1)
+		/// <summary>
+		/// List of process class names which processed this build
+		/// </summary>
+		[Column("processedBy"),                 NotNull] public string    ProcessedBy  { get; set; } // longtext
 		[Column("firstBuildId"),                NotNull] public ulong     FirstBuildId { get; set; } // bigint(20) unsigned
 		[Column("clientBuild"),                 NotNull] public uint      ClientBuild  { get; set; } // int(10) unsigned
 		[Column("created_at"),      Nullable           ] public DateTime? CreatedAt    { get; set; } // timestamp
