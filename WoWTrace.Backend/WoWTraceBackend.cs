@@ -18,7 +18,13 @@ namespace WoWTrace.Backend
 
         public WoWTraceBackend(Options options)
         {
+            Console.WriteLine();
+
             QueueManager.Instance.Initialize();
+
+            // Crawl at startup
+            (new CrawlBuildJob()).Execute();
+
             InitializeJobs(options.EnqueueAllBuildsEveryFiveHours);
 
             if (options.EnqueueAllBuilds)
@@ -28,18 +34,15 @@ namespace WoWTrace.Backend
         private void InitializeJobs(bool enqueueAllBuildsEveryFiveHours = false)
         {
 #if (RELEASE)
+            logger.Info("Initialize jobs");
             JobManager.Initialize();
             JobManager.AddJob<CrawlBuildJob>(s => s.NonReentrant().ToRunEvery(5).Minutes());
             
             if (enqueueAllBuildsEveryFiveHours)
                 JobManager.AddJob(() => EnqueueAllBuilds(), s => s.NonReentrant().ToRunEvery(5).Hours());
 #else
-            (new CrawlBuildJob()).Execute();
-
             if (enqueueAllBuildsEveryFiveHours)
                 EnqueueAllBuilds();
-
-            logger.Info("Finish debug run!");
 #endif
         }
 

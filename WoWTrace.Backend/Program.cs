@@ -1,4 +1,6 @@
 ﻿using CommandLine;
+using Microsoft.Extensions.Logging;
+using NLog;
 using System;
 using System.Threading;
 
@@ -7,6 +9,7 @@ namespace WoWTrace.Backend
     internal class Program
     {
         static ManualResetEvent _quitEvent = new ManualResetEvent(false);
+        static Logger logger = LogManager.GetCurrentClassLogger();
 
         public class Options
         {
@@ -20,9 +23,9 @@ namespace WoWTrace.Backend
 
         static void Main(string[] args)
         {
+            PrintLogo();
+
             Parser.Default.ParseArguments<Options>(args).WithParsed<Options>(o => new WoWTraceBackend(o));
-
-
 
             Console.CancelKeyPress += (sender, eArgs) => {
                 _quitEvent.Set();
@@ -30,6 +33,18 @@ namespace WoWTrace.Backend
             };
 
             _quitEvent.WaitOne();
+        }
+
+        static void PrintLogo()
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(@"__        __ __        _______                   ");
+            Console.WriteLine(@"\ \      / /_\ \      / /_   _| __ __ _  ___ ___ ");
+            Console.WriteLine(@" \ \ /\ / / _ \ \ /\ / /  | || '__/ _` |/ __/ _ \");
+            Console.WriteLine(@"  \ V  V / (_) \ V  V /   | || | | (_| | (_|  __/");
+            Console.WriteLine(@"   \_/\_/ \___/ \_/\_/    |_||_|  \__,_|\___\___|");
+            Console.WriteLine("    https://wowtrace.net                  Backend\n");
+            Console.ResetColor();
         }
     }
 }
