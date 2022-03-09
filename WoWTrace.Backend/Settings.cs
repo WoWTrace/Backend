@@ -1,36 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.IO;
+
 using LinqToDB.Configuration;
-using System.Threading;
 
 namespace WoWTrace.Backend
 {
-    
     public class Settings
     {
         [JsonIgnore]
         private static string SavePath => Path.Combine(Environment.CurrentDirectory, "settings.json");
 
         [JsonIgnore]
-        private static readonly Lazy<Settings> lazy = new Lazy<Settings>(() => {
-            if (!File.Exists(SavePath))
-            {
-                var settings = new Settings();
-                settings.Save();
-                return settings;
-            }
+        private static readonly Lazy<Settings> _lazy = new(() =>
+        {
+            if (File.Exists(SavePath))
+                return JsonSerializer.Deserialize<Settings>(File.ReadAllText(SavePath)) ?? throw new($"Failed to load {SavePath}");
 
-            return JsonSerializer.Deserialize<Settings>(File.ReadAllText(SavePath));
+            var settings = new Settings();
+            settings.Save();
+            return settings;
+
         }, LazyThreadSafetyMode.ExecutionAndPublication);
-        
+
         [JsonIgnore]
-        public static Settings Instance { get { return lazy.Value; } }
+        public static Settings Instance => _lazy.Value;
 
         [JsonPropertyName("cacheEnabled")]
         public bool CacheEnabled { get; set; } = true;
@@ -39,10 +32,10 @@ namespace WoWTrace.Backend
         public string CachePath { get; set; } = "cache";
 
         [JsonPropertyName("dbConnectionString")]
-        public string DBConnectionString { get; set; } = "Server=127.0.0.1;Port=3306;Database=wowtrace;Uid=root;Pwd=;";
+        public string DbConnectionString { get; set; } = "Server=127.0.0.1;Port=3306;Database=wowtrace;Uid=root;Pwd=;";
 
         [JsonPropertyName("dbBulkSize")]
-        public int DBBulkSize { get; set; } = 10000;
+        public int DbBulkSize { get; set; } = 10000;
 
         [JsonPropertyName("queueConnectionString")]
         public string QueueConnectionString { get; set; } = @"FullUri=file:queue.db3?mode=memory&cache=shared;Version=3;";
@@ -53,13 +46,13 @@ namespace WoWTrace.Backend
         }
 
         [JsonConstructor]
-        public Settings(bool CacheEnabled, string CachePath, string DBConnectionString, int DBBulkSize, string QueueConnectionString)
+        public Settings(bool cacheEnabled, string cachePath, string dbConnectionString, int dbBulkSize, string queueConnectionString)
         {
-            this.CacheEnabled = CacheEnabled;
-            this.CachePath = CachePath;
-            this.DBConnectionString = DBConnectionString;
-            this.DBBulkSize = DBBulkSize;
-            this.QueueConnectionString = QueueConnectionString;
+            CacheEnabled = cacheEnabled;
+            CachePath = cachePath;
+            DbConnectionString = dbConnectionString;
+            DbBulkSize = dbBulkSize;
+            QueueConnectionString = queueConnectionString;
         }
 
         ~Settings()
@@ -67,17 +60,17 @@ namespace WoWTrace.Backend
             Save();
         }
 
-        public LinqToDbConnectionOptions DBConnectionOptions()
+        public LinqToDbConnectionOptions DbConnectionOptions()
         {
-            LinqToDbConnectionOptionsBuilder builder = new LinqToDbConnectionOptionsBuilder();
-            builder.UseMySql(DBConnectionString);
+            var builder = new LinqToDbConnectionOptionsBuilder();
+            builder.UseMySql(DbConnectionString);
 
             return builder.Build();
         }
 
         public void Save()
         {
-            string jsonString = JsonSerializer.Serialize(this, new JsonSerializerOptions() { WriteIndented = true });
+            var jsonString = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(SavePath, jsonString);
         }
     }

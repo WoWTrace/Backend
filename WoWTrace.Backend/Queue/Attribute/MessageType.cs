@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace WoWTrace.Backend.Queue.Attribute
+﻿namespace WoWTrace.Backend.Queue.Attribute
 {
     [AttributeUsage(AttributeTargets.Class)]
     public class MessageType : System.Attribute

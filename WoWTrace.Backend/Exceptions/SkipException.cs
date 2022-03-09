@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace WoWTrace.Backend.Exceptions
+﻿namespace WoWTrace.Backend.Exceptions
 {
     public class SkipException : Exception
     {

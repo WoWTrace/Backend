@@ -1,7 +1,4 @@
-﻿using System;
-using System.Linq;
-
-namespace WoWTrace.Backend.Extensions
+﻿namespace WoWTrace.Backend.Extensions
 {
     public static class ExtendedType
     {

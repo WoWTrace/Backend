@@ -5,8 +5,8 @@ namespace WoWTrace.Backend.Queue.Message.V1
     [MessageType(MessageType.TypeBuild)]
     public class ProcessRootMessage : IQueueMessage
     {
-        public ulong BuildId;
-        public bool Force = false;
+        public readonly ulong BuildId;
+        public readonly bool Force;
 
         public ProcessRootMessage(ulong buildId, bool force = false)
         {

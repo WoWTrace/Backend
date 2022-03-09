@@ -1,46 +1,45 @@
 ﻿using NLog;
-using System;
-using System.IO;
 using TACT.Net;
 using TACT.Net.Configs;
+
 using WoWTrace.Backend.DataModels;
 
 namespace WoWTrace.Backend.Tact
 {
     public class TactHandler : IDisposable
     {
-        public TACTRepo Repo;
+        public TACTRepo? Repo { get; private set; }
 
-        public static string CachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Settings.Instance.CachePath);
-        protected static object instanceLock = new object();
+        public static readonly string CachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Settings.Instance.CachePath);
 
-        private static Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly object _instanceLock = new();
+        private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-        public TactHandler(string product, string patchUrl = null, int buildId = 0, string versionName = null, string buildConfig = null, string cdnConfig = null, Locale locale = Locale.US)
+        public TactHandler(string product, string? patchUrl = null, int buildId = 0, string? versionName = null, string? buildConfig = null, string? cdnConfig = null, Locale locale = Locale.US)
         {
-            Initilize(new ManifestContainer(product, locale, patchUrl, buildId, versionName, buildConfig, cdnConfig));
+            Initialize(new(product, locale, patchUrl, buildId, versionName, buildConfig, cdnConfig));
         }
 
         public TactHandler(Build build, Locale locale = Locale.US)
         {
-            Initilize(new ManifestContainer(build.ProductKey, locale, null, 0, null, build.BuildConfig, build.CdnConfig));
+            Initialize(new(build.ProductKey, locale, null, 0, null, build.BuildConfig, build.CdnConfig));
         }
 
         public TactHandler(ManifestContainer manifest)
         {
-            Initilize(manifest);
+            Initialize(manifest);
         }
 
-        private void Initilize(ManifestContainer manifest)
+        private void Initialize(ManifestContainer manifest)
         {
             if (!Directory.Exists(CachePath))
                 Directory.CreateDirectory(CachePath);
 
-            lock (instanceLock)
+            lock (_instanceLock)
             {
-                logger.Info($"Open remote product: {manifest.Product}");
+                _logger.Info($"Open remote product: {manifest.Product}");
 
-                Repo = new TACTRepo()
+                Repo = new()
                 {
                     RemoteCache = Settings.Instance.CacheEnabled,
                     RemoteCacheDirectory = CachePath,
@@ -53,9 +52,9 @@ namespace WoWTrace.Backend.Tact
 
         public void Dispose()
         {
-            Repo.Close();
+            Repo?.Close();
             Repo = null;
-            
+
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
