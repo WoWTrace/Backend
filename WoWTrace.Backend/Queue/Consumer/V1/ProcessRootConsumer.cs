@@ -70,7 +70,7 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
 
                     foreach (var (_, rootRecord) in rootBlock.Records)
                     {
-                        var lookup = string.Empty;
+                        string? lookup = null;
                         if (!rootBlock.ContentFlags.HasFlag(ContentFlags.NoNameHash))
                             lookup = $"{rootRecord.NameHash:X}".ToLower();
 

@@ -39,22 +39,9 @@ namespace WoWTrace.Backend.Jobs
             var remoteCacheDirectory = Settings.Instance.CacheEnabled ? TactHandler.CachePath : null;
             try
             {
-                // Skip encrypted builds to prevent useless error messages in log
-                if (product.Encrypted)
-                {
-                    // Update product
-                    using (var db = new WowtraceDB(Settings.Instance.DbConnectionOptions()))
-                    {
-                        product.Detected = DateTime.Now;
-                        db.Update(product);
-                    }
-
-                    throw new SkipException($"Skip encrypted build {product.ProductColumn} - {product.LastVersion}");
-                }
-
                 manifest = GetManifestByProduct(product.ProductColumn, Locale.EU, remoteCacheDirectory);
                 if (manifest.BuildConfigMD5.Value == null)
-                    throw new("Cant read build config!");
+                    throw new EncryptedBuildConfigException("Cant read build config! Encrypted");
 
                 // Check if build already exists in database
                 bool hasBuild;
@@ -72,6 +59,9 @@ namespace WoWTrace.Backend.Jobs
                     product.Detected = DateTime.Now;
                     db.Update(product);
                 }
+
+                if (product.Encrypted)
+                    throw new SkipException($"Skip encrypted build {product.ProductColumn} - {product.LastVersion} - {manifest.BuildConfigMD5}");
 
                 var configContainer = new ConfigContainer();
                 configContainer.OpenRemote(manifest, remoteCacheDirectory);
@@ -95,7 +85,8 @@ namespace WoWTrace.Backend.Jobs
 
                 string? sizeCKey = null;
                 string? sizeEKey = null;
-                if (configContainer.DownloadSizeCKey.Value != null && encoding.TryGetCKeyEntry(configContainer.DownloadSizeCKey, out var sizeEncodingEntry))
+                if (configContainer.DownloadSizeCKey.Value != null &&
+                    encoding.TryGetCKeyEntry(configContainer.DownloadSizeCKey, out var sizeEncodingEntry))
                 {
                     sizeCKey = sizeEncodingEntry.CKey.ToString();
                     sizeEKey = sizeEncodingEntry.EKeys.First().ToString();
@@ -106,17 +97,22 @@ namespace WoWTrace.Backend.Jobs
                 // Save new build
                 using (var db = new WowtraceDB(Settings.Instance.DbConnectionOptions()))
                 {
-                    id = (ulong?)db.Builds
+                    id = (ulong?) db.Builds
                         .Value(p => p.BuildConfig, manifest.BuildConfigMD5.ToString())
                         .Value(p => p.CdnConfig, manifest.CDNConfigMD5.ToString())
-                        .Value(p => p.PatchConfig, configContainer.PatchConfigMD5.Value != null ? configContainer.PatchConfigMD5.ToString() : null)
+                        .Value(p => p.PatchConfig,
+                            configContainer.PatchConfigMD5.Value != null
+                                ? configContainer.PatchConfigMD5.ToString()
+                                : null)
                         .Value(p => p.ProductConfig, manifest.ProductConfig)
                         .Value(p => p.ProductKey, product.ProductColumn)
                         .Value(p => p.Expansion, version.Major.ToString())
                         .Value(p => p.Major, version.Minor.ToString())
                         .Value(p => p.Minor, version.Build.ToString())
-                        .Value(p => p.ClientBuild, (uint)version.Revision)
-                        .Value(p => p.Name, configContainer.BuildConfig.GetValue("build-name") ?? $"WOW-{version.Revision}patch{version.Major}.{version.Minor}.{version.Build}")
+                        .Value(p => p.ClientBuild, (uint) version.Revision)
+                        .Value(p => p.Name,
+                            configContainer.BuildConfig.GetValue("build-name") ??
+                            $"WOW-{version.Revision}patch{version.Major}.{version.Minor}.{version.Build}")
                         .Value(p => p.EncodingContentHash, configContainer.EncodingCKey.ToString())
                         .Value(p => p.EncodingCdnHash, configContainer.EncodingEKey.ToString())
                         .Value(p => p.RootContentHash, configContainer.RootCKey.ToString())
@@ -142,6 +138,10 @@ namespace WoWTrace.Backend.Jobs
             catch (SkipException ex)
             {
                 _logger.Trace(ex.Message);
+            }
+            catch (EncryptedBuildConfigException ex)
+            {
+                _logger.Warn(ex.Message);
             }
             catch (Exception ex)
             {
