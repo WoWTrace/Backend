@@ -1,9 +1,9 @@
-﻿using FluentScheduler;
+﻿using System.Reflection;
+
+using FluentScheduler;
 using NLog;
-using System;
-using System.Linq;
+
 using WoWTrace.Backend.DataModels;
-using WoWTrace.Backend.Extensions;
 using WoWTrace.Backend.Jobs;
 using WoWTrace.Backend.Queue;
 using WoWTrace.Backend.Queue.Attribute;
@@ -12,9 +12,9 @@ using static WoWTrace.Backend.Program;
 
 namespace WoWTrace.Backend
 {
-    class WoWTraceBackend
+    internal class WoWTraceBackend
     {
-        private Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
         public WoWTraceBackend(Options options)
         {
@@ -23,7 +23,8 @@ namespace WoWTrace.Backend
             QueueManager.Instance.Initialize();
 
             // Crawl at startup
-            (new CrawlBuildJob()).Execute();
+            new CrawlBuildJob()
+                .Execute();
 
             InitializeJobs(options.EnqueueAllBuildsEveryFiveHours);
 
@@ -31,42 +32,42 @@ namespace WoWTrace.Backend
                 EnqueueAllBuilds();
         }
 
-        private void InitializeJobs(bool enqueueAllBuildsEveryFiveHours = false)
+        private static void InitializeJobs(bool enqueueAllBuildsEveryFiveHours = false)
         {
-#if (RELEASE)
-            logger.Info("Initialize jobs");
+#if RELEASE
+            _logger.Info("Initialize jobs");
             JobManager.Initialize();
             JobManager.AddJob<CrawlBuildJob>(s => s.NonReentrant().ToRunEvery(5).Minutes());
-            
+
             if (enqueueAllBuildsEveryFiveHours)
-                JobManager.AddJob(() => EnqueueAllBuilds(), s => s.NonReentrant().ToRunEvery(5).Hours());
+                JobManager.AddJob(EnqueueAllBuilds, s => s.NonReentrant().ToRunEvery(5).Hours());
 #else
             if (enqueueAllBuildsEveryFiveHours)
                 EnqueueAllBuilds();
 #endif
         }
 
-        private void EnqueueAllBuilds()
+        private static void EnqueueAllBuilds()
         {
-            using (var db = new WowtraceDB(Settings.Instance.DBConnectionOptions()))
+            using (var db = new WowtraceDB(Settings.Instance.DbConnectionOptions()))
             {
                 foreach (var build in db.Builds)
                 {
-                    IQueueMessage[] messages = AppDomain
+                    var messages = AppDomain
                         .CurrentDomain
                         .GetAssemblies()
                         .SelectMany(messages => messages.GetTypes())
                         .Where(typeof(IQueueMessage).IsAssignableFrom)
                         .Where(messageType => !messageType.IsInterface)
-                        .Where(messageType => messageType.GetCustomAttributes<MessageType>().Type == MessageType.TypeBuild)
-                        .Select(patchInstance => (IQueueMessage)Activator.CreateInstance(patchInstance, build.Id, false))
+                        .Where(messageType => messageType.GetCustomAttribute<MessageType>()?.Type == MessageType.TypeBuild)
+                        .Select(patchInstance => (IQueueMessage?)Activator.CreateInstance(patchInstance, build.Id, false))
                         .ToArray();
 
                     if (!messages.Any())
                         return;
 
                     foreach (var message in messages)
-                        message.PublishMessage();
+                        message?.PublishMessage();
                 }
             }
         }

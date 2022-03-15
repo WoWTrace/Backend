@@ -1,31 +1,28 @@
 ﻿using CommandLine;
-using Microsoft.Extensions.Logging;
 using NLog;
-using System;
-using System.Threading;
 
 namespace WoWTrace.Backend
 {
-    internal class Program
+    internal abstract class Program
     {
-        static ManualResetEvent _quitEvent = new ManualResetEvent(false);
-        static Logger logger = LogManager.GetCurrentClassLogger();
+        private static readonly ManualResetEvent _quitEvent = new(false);
+        private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
         public class Options
         {
-            [Option("enqueueAllBuilds", Required = false, HelpText = "Enqueue all availabe builds (just needed to process manuel instered builds)")]
+            [Option("enqueueAllBuilds", Required = false, HelpText = "Enqueue all available builds (just needed to process manuel inserted builds)")]
             public bool EnqueueAllBuilds { get; set; }
 
-
-            [Option("enqueueAllBuildsEveryFiveHours", Required = false, HelpText = "Enqueue all availabe builds every 5 hours")]
+            [Option("enqueueAllBuildsEveryFiveHours", Required = false, HelpText = "Enqueue all available builds every 5 hours")]
             public bool EnqueueAllBuildsEveryFiveHours { get; set;}
         }
 
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             PrintLogo();
 
-            Parser.Default.ParseArguments<Options>(args).WithParsed<Options>(o => new WoWTraceBackend(o));
+            Parser.Default.ParseArguments<Options>(args)
+                .WithParsed(o => _ = new WoWTraceBackend(o));
 
             Console.CancelKeyPress += (sender, eArgs) => {
                 _quitEvent.Set();
@@ -35,7 +32,7 @@ namespace WoWTrace.Backend
             _quitEvent.WaitOne();
         }
 
-        static void PrintLogo()
+        private static void PrintLogo()
         {
             Console.ForegroundColor = ConsoleColor.DarkRed;
             Console.WriteLine(@"__        __ __        _______                   ");

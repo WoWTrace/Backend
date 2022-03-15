@@ -1,20 +1,20 @@
 ﻿using DotNetWorkQueue;
 using DotNetWorkQueue.Configuration;
 using DotNetWorkQueue.Transport.SQLite.Basic;
-using System;
-using System.Linq;
-using System.Threading;
+
 using WoWTrace.Backend.Queue.Consumer;
 
 namespace WoWTrace.Backend.Queue
 {
     public sealed class QueueManager
     {
-        public QueueConnection RootV1Queue;
-        public QueueConnection ExecutableV1Queue;
-        private static Lazy<QueueManager> lazy = new Lazy<QueueManager>(() => new QueueManager(), LazyThreadSafetyMode.ExecutionAndPublication);
+        public static QueueManager Instance => _lazy.Value;
 
-        public static QueueManager Instance { get { return lazy.Value; } }
+        public readonly QueueConnection RootV1Queue;
+        public readonly QueueConnection ExecutableV1Queue;
+
+        private static readonly Lazy<QueueManager> _lazy = new(() => new(), LazyThreadSafetyMode.ExecutionAndPublication);
+        private readonly List<Thread> _runningConsumers = new();
 
         private QueueManager()
         {
@@ -24,46 +24,41 @@ namespace WoWTrace.Backend.Queue
             InitializeConsumer();
         }
 
-        protected QueueConnection CreateQueue(string queueName, string connectionString)
+        private QueueConnection CreateQueue(string queueName, string connectionString)
         {
             var queueConnection = new QueueConnection(queueName, connectionString);
+
             using (var createQueueContainer = new QueueCreationContainer<SqLiteMessageQueueInit>())
+            using (var createQueue = createQueueContainer.GetQueueCreation<SqLiteMessageQueueCreation>(queueConnection))
             {
-                using (var createQueue = createQueueContainer.GetQueueCreation<SqLiteMessageQueueCreation>(queueConnection))
-                {
-                    if (!createQueue.QueueExists)
-                        createQueue.CreateQueue();
-                }
+                if (!createQueue.QueueExists)
+                    createQueue.CreateQueue();
             }
 
             return queueConnection;
         }
 
-        protected void InitializeConsumer()
+        private void InitializeConsumer()
         {
-            IConsumer[] comsumer = AppDomain
+            var consumers = AppDomain
                 .CurrentDomain
                 .GetAssemblies()
-                .SelectMany(comsumers => comsumers.GetTypes())
+                .SelectMany(consumers => consumers.GetTypes())
                 .Where(typeof(IConsumer).IsAssignableFrom)
-                .Where(comsumerType => !comsumerType.IsInterface)
-                .Select(comsumerInstance => (IConsumer)Activator.CreateInstance(comsumerInstance))
+                .Where(consumerType => !consumerType.IsInterface)
+                .Select(consumerInstance => (IConsumer?)Activator.CreateInstance(consumerInstance))
                 .ToArray();
 
-            foreach (IConsumer consumer in comsumer)
-                (new Thread(() => { consumer.Listen(); })).Start();
-
-
-            (new Thread(() =>
+            foreach (var consumer in consumers)
             {
-                Thread.Sleep(5000);
+                var thread =  new Thread(() =>
+                {
+                    consumer?.Listen();
+                });
+                thread.Start();
 
-
-            })).Start();
-
-
-
-            var a = 2;
+                _runningConsumers.Add(thread);
+            }
         }
 
         public void Publish<T>(T message, QueueConnection queueConnection) where T : class
@@ -78,6 +73,14 @@ namespace WoWTrace.Backend.Queue
         public void Initialize()
         {
             // Initialize in constructor
+        }
+
+        public void Shutdown()
+        {
+            foreach (var consumerThread in _runningConsumers)
+                consumerThread.Join();
+
+            _runningConsumers.Clear();
         }
     }
 }

@@ -1,7 +1,7 @@
-﻿using LinqToDB;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
+﻿using System.Text.Json;
+
+using LinqToDB;
+
 using WoWTrace.Backend.DataModels;
 
 namespace WoWTrace.Backend.Queue.Consumer
@@ -10,34 +10,30 @@ namespace WoWTrace.Backend.Queue.Consumer
     {
         public bool AlreadyProcessedCheck(ulong buildId)
         {
-            Build build = null;
-            using (var db = new WowtraceDB(Settings.Instance.DBConnectionOptions()))
-            {
+            Build? build;
+            using (var db = new WowtraceDB(Settings.Instance.DbConnectionOptions()))
                 build = db.Builds.First(b => b.Id == buildId);
-            }
 
             if (build == null)
                 return false;
 
-            HashSet<string> processedBy = JsonSerializer.Deserialize<HashSet<string>>(build.ProcessedBy);
-            return processedBy.Contains(GetType().FullName);
+            var processedBy = JsonSerializer.Deserialize<HashSet<string>>(build.ProcessedBy);
+            return processedBy != null && processedBy.Contains(GetType().FullName ?? throw new("Parent type is not initialized"));
         }
 
         public void MarkAsProcessed(ulong buildId)
         {
-            Build build = null;
-            using (var db = new WowtraceDB(Settings.Instance.DBConnectionOptions()))
-            {
+            Build? build;
+            using (var db = new WowtraceDB(Settings.Instance.DbConnectionOptions()))
                 build = db.Builds.First(b => b.Id == buildId);
-            }
 
             if (build == null)
                 return;
 
-            HashSet<string> processedBy = JsonSerializer.Deserialize<HashSet<string>>(build.ProcessedBy);
-            processedBy.Add(GetType().FullName);
+            var processedBy = JsonSerializer.Deserialize<HashSet<string>>(build.ProcessedBy);
+            processedBy?.Add(GetType().FullName ?? throw new("Parent type is not initialized"));
 
-            using (var db = new WowtraceDB(Settings.Instance.DBConnectionOptions()))
+            using (var db = new WowtraceDB(Settings.Instance.DbConnectionOptions()))
             {
                 db.Builds
                     .Where(b => b.Id == build.Id)
