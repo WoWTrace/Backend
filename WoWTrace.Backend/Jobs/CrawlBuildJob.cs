@@ -39,7 +39,7 @@ namespace WoWTrace.Backend.Jobs
             var remoteCacheDirectory = Settings.Instance.CacheEnabled ? TactHandler.CachePath : null;
             try
             {
-                manifest = GetManifestByProduct(product.ProductColumn, Locale.EU, remoteCacheDirectory);
+                manifest = GetManifestByProduct(product.ProductColumn, remoteCacheDirectory: remoteCacheDirectory);
                 if (manifest.BuildConfigMD5.Value == null)
                     throw new EncryptedBuildConfigException("Cant read build config! Encrypted");
 
@@ -155,7 +155,7 @@ namespace WoWTrace.Backend.Jobs
             GC.Collect();
         }
 
-        private static ManifestContainer GetManifestByProduct(string product, Locale locale = Locale.EU, string? remoteCacheDirectory = null)
+        private static ManifestContainer GetManifestByProduct(string product, Locale locale = Locale.US, string? remoteCacheDirectory = null)
         {
             var manifest = new ManifestContainer(product, locale);
             manifest.OpenRemote(remoteCacheDirectory);
