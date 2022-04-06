@@ -94,7 +94,7 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
                         });
 
                         rootEntryCount++;
-                        if (listFileQueryCache.Count >= Settings.Instance.DbBulkSize)
+                        if (listFileQueryCache.Count >= Settings.Instance.DbBulkSize || listFileBuildQueryCache.Count >= Settings.Instance.DbBulkSize || listFileVersionQueryCache.Count >= Settings.Instance.DbBulkSize)
                             SaveBulk(ref listFileQueryCache, ref listFileBuildQueryCache, ref listFileVersionQueryCache);
                     }
                 }

@@ -70,40 +70,49 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
             const RegexOptions options = RegexOptions.IgnoreCase;
             var builtDateFound = false;
 
-            using (var stream = OpenExecutable(build))
-            using (var br = new BinaryReader(stream))
+            try
             {
-                while (stream.Position != stream.Length)
+                using (var stream = OpenExecutable(build))
+                using (var br = new BinaryReader(stream))
                 {
-                    var match = Regex.Match(br.ReadCString(), pattern, options);
-
-                    if (!match.Success || match.Groups.Count != 2)
-                        continue;
-
-                    _logger.Trace($"Executable for build {build.Id} built on {match.Groups[1].Value}");
-
-                    var executableBuiltDate = DateTime.Parse(match.Groups[1].Value);
-
-                    using (var db = new WowtraceDB(Settings.Instance.DbConnectionOptions()))
+                    while (stream.Position != stream.Length)
                     {
-                        db.Builds
-                            .Where(b => b.Id == build.Id)
-                            .Set(b => b.CompiledAt, executableBuiltDate)
-                            .Set(b => b.UpdatedAt, DateTime.Now)
-                            .Update();
+                        var match = Regex.Match(br.ReadCString(), pattern, options);
+
+                        if (!match.Success || match.Groups.Count != 2)
+                            continue;
+
+                        _logger.Trace($"Executable for build {build.Id} built on {match.Groups[1].Value}");
+
+                        var executableBuiltDate = DateTime.Parse(match.Groups[1].Value);
+
+                        using (var db = new WowtraceDB(Settings.Instance.DbConnectionOptions()))
+                        {
+                            db.Builds
+                                .Where(b => b.Id == build.Id)
+                                .Set(b => b.CompiledAt, executableBuiltDate)
+                                .Set(b => b.UpdatedAt, DateTime.Now)
+                                .Update();
+                        }
+
+                        builtDateFound = true;
+                        break;
                     }
-
-                    builtDateFound = true;
-                    break;
                 }
-            }
 
-            if (!builtDateFound)
+
+                if (!builtDateFound)
+                {
+                    _logger.Error($"Cant find executable built date in BuildId: {build.Id}!");
+                    return;
+                }
+
+            }
+            catch (Exception ex)
             {
-                _logger.Error($"Cant find executable built date in BuildId: {build.Id}!");
+                _logger.Error($"Cant find executable built date in BuildId: {build.Id}!\n {ex}");
                 return;
             }
-
             MarkAsProcessed(build.Id);
         }
 
