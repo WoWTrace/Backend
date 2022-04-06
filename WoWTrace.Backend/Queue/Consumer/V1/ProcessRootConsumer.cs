@@ -39,7 +39,7 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
             Process(build, message.Body.Force);
         }
 
-        private void Process(Build build, bool force = false)
+        public void Process(Build build, bool force = false)
         {
             if (!force && AlreadyProcessedCheck(build.Id))
             {

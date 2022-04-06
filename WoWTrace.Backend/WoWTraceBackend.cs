@@ -7,6 +7,7 @@ using WoWTrace.Backend.DataModels;
 using WoWTrace.Backend.Jobs;
 using WoWTrace.Backend.Queue;
 using WoWTrace.Backend.Queue.Attribute;
+using WoWTrace.Backend.Queue.Consumer.V1;
 using WoWTrace.Backend.Queue.Message;
 using static WoWTrace.Backend.Program;
 
@@ -20,15 +21,17 @@ namespace WoWTrace.Backend
         {
             Console.WriteLine();
 
-            QueueManager.Instance.Initialize();
-
-
-            // Crawl at startup
-            new DumpBuildInformationJob()
-                .Execute();
+            // Hackfix root processing
+            using (var db = new WowtraceDB(Settings.Instance.DbConnectionOptions()))
+            {
+                foreach (var build in db.Builds)
+                    new ProcessRootConsumer().Process(build, true);
+            }
 
             return;
-            
+
+            QueueManager.Instance.Initialize();
+
             // Crawl at startup
             new CrawlBuildJob()
                 .Execute();
