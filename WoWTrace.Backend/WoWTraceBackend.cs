@@ -25,7 +25,7 @@ namespace WoWTrace.Backend
             using (var db = new WowtraceDB(Settings.Instance.DbConnectionOptions()))
             {
                 foreach (var build in db.Builds)
-                    new ProcessRootConsumer().Process(build, true);
+                    new ProcessRootConsumer().Process(build);
             }
 
             return;
