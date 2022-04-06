@@ -22,6 +22,13 @@ namespace WoWTrace.Backend
 
             QueueManager.Instance.Initialize();
 
+
+            // Crawl at startup
+            new DumpBuildInformationJob()
+                .Execute();
+
+            return;
+            
             // Crawl at startup
             new CrawlBuildJob()
                 .Execute();
