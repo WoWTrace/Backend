@@ -98,9 +98,11 @@ namespace WoWTrace.Backend.Queue.Consumer.V1
                             SaveBulk(ref listFileQueryCache, ref listFileBuildQueryCache, ref listFileVersionQueryCache);
                     }
                 }
+
+                SaveBulk(ref listFileQueryCache, ref listFileBuildQueryCache, ref listFileVersionQueryCache);
             }
 
-            _logger.Trace($"Processed {rootEntryCount} root entries in build {build.Id}");
+            _logger.Info($"Processed {rootEntryCount} root entries in build {build.Id}");
             MarkAsProcessed(build.Id);
         }
 
