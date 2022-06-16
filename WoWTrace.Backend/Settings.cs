@@ -60,9 +60,9 @@ namespace WoWTrace.Backend
             Save();
         }
 
-        public LinqToDbConnectionOptions DbConnectionOptions()
+        public LinqToDBConnectionOptions DbConnectionOptions()
         {
-            var builder = new LinqToDbConnectionOptionsBuilder();
+            var builder = new LinqToDBConnectionOptionsBuilder();
             builder.UseMySql(DbConnectionString);
 
             return builder.Build();

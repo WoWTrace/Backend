@@ -8,13 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.8.0" />
-    <PackageReference Include="DotNetWorkQueue" Version="0.6.4" />
-    <PackageReference Include="DotNetWorkQueue.Transport.SQLite" Version="0.6.4" />
+    <PackageReference Include="CommandLineParser" Version="2.9.1" />
+    <PackageReference Include="DotNetWorkQueue" Version="0.6.6" />
+    <PackageReference Include="DotNetWorkQueue.Transport.SQLite" Version="0.6.6" />
     <PackageReference Include="FluentScheduler" Version="5.5.1" />
-    <PackageReference Include="linq2db" Version="4.0.0-preview.10" />
-    <PackageReference Include="linq2db.MySql" Version="4.0.0-preview.9-fixed" />
-    <PackageReference Include="NLog" Version="5.0.0-rc1" />
+    <PackageReference Include="linq2db" Version="4.1.0" />
+    <PackageReference Include="linq2db.MySql" Version="4.1.0" />
+    <PackageReference Include="NLog" Version="5.0.1" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0" />
   </ItemGroup>
 

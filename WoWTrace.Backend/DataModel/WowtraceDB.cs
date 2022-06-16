@@ -5,7 +5,7 @@
 // </auto-generated>
 //---------------------------------------------------------------------------------------------------
 
-#pragma warning disable 1591
+#pragma warning disable 1573, 1591
 
 using System;
 using System.Collections.Generic;
@@ -20,7 +20,7 @@ namespace WoWTrace.Backend.DataModels
 	/// <summary>
 	/// Database       : wowtrace
 	/// Data Source    : 127.0.0.1
-	/// Server Version : 5.5.5-10.3.32-MariaDB-0ubuntu0.20.04.1
+	/// Server Version : 5.5.5-10.4.24-MariaDB-1:10.4.24+maria~focal
 	/// </summary>
 	public partial class WowtraceDB : LinqToDB.Data.DataConnection
 	{
@@ -55,14 +55,14 @@ namespace WoWTrace.Backend.DataModels
 			InitMappingSchema();
 		}
 
-		public WowtraceDB(LinqToDbConnectionOptions options)
+		public WowtraceDB(LinqToDBConnectionOptions options)
 			: base(options)
 		{
 			InitDataContext();
 			InitMappingSchema();
 		}
 
-		public WowtraceDB(LinqToDbConnectionOptions<WowtraceDB> options)
+		public WowtraceDB(LinqToDBConnectionOptions<WowtraceDB> options)
 			: base(options)
 		{
 			InitDataContext();
@@ -96,9 +96,9 @@ namespace WoWTrace.Backend.DataModels
 		#region Associations
 
 		/// <summary>
-		/// attachmentable_attachment_id_foreign_BackReference
+		/// attachmentable_attachment_id_foreign_BackReference (attachmentable)
 		/// </summary>
-		[Association(ThisKey="Id", OtherKey="AttachmentId", CanBeNull=true, Relationship=LinqToDB.Mapping.Relationship.OneToMany, IsBackReference=true)]
+		[Association(ThisKey="Id", OtherKey="AttachmentId", CanBeNull=true)]
 		public IEnumerable<Attachmentable> Attachmentableattachmentidforeigns { get; set; }
 
 		#endregion
@@ -115,9 +115,9 @@ namespace WoWTrace.Backend.DataModels
 		#region Associations
 
 		/// <summary>
-		/// attachmentable_attachment_id_foreign
+		/// attachmentable_attachment_id_foreign (attachments)
 		/// </summary>
-		[Association(ThisKey="AttachmentId", OtherKey="Id", CanBeNull=false, Relationship=LinqToDB.Mapping.Relationship.ManyToOne, KeyName="attachmentable_attachment_id_foreign", BackReferenceName="Attachmentableattachmentidforeigns")]
+		[Association(ThisKey="AttachmentId", OtherKey="Id", CanBeNull=false)]
 		public Attachment Attachment { get; set; }
 
 		#endregion
@@ -166,21 +166,21 @@ namespace WoWTrace.Backend.DataModels
 		#region Associations
 
 		/// <summary>
-		/// listfile_builds_buildid_foreign_BackReference
+		/// listfile_builds_buildid_foreign_BackReference (listfile_builds)
 		/// </summary>
-		[Association(ThisKey="Id", OtherKey="BuildId", CanBeNull=true, Relationship=LinqToDB.Mapping.Relationship.OneToMany, IsBackReference=true)]
+		[Association(ThisKey="Id", OtherKey="BuildId", CanBeNull=true)]
 		public IEnumerable<ListfileBuild> Listfilebuildsbuildidforeigns { get; set; }
 
 		/// <summary>
-		/// listfile_version_buildid_foreign_BackReference
+		/// listfile_version_buildid_foreign_BackReference (listfile_version)
 		/// </summary>
-		[Association(ThisKey="Id", OtherKey="FirstBuildId", CanBeNull=true, Relationship=LinqToDB.Mapping.Relationship.OneToMany, IsBackReference=true)]
+		[Association(ThisKey="Id", OtherKey="FirstBuildId", CanBeNull=true)]
 		public IEnumerable<ListfileVersion> Listfileversionbuildidforeigns { get; set; }
 
 		/// <summary>
-		/// build_product_foreign
+		/// build_product_foreign (product)
 		/// </summary>
-		[Association(ThisKey="ProductKey", OtherKey="ProductColumn", CanBeNull=false, Relationship=LinqToDB.Mapping.Relationship.ManyToOne, KeyName="build_product_foreign", BackReferenceName="Buildforeigns")]
+		[Association(ThisKey="ProductKey", OtherKey="ProductColumn", CanBeNull=false)]
 		public Product Productforeign { get; set; }
 
 		#endregion
@@ -226,21 +226,21 @@ namespace WoWTrace.Backend.DataModels
 		#region Associations
 
 		/// <summary>
-		/// listfile_builds_id_foreign_BackReference
+		/// listfile_builds_id_foreign_BackReference (listfile_builds)
 		/// </summary>
-		[Association(ThisKey="Id", OtherKey="Id", CanBeNull=true, Relationship=LinqToDB.Mapping.Relationship.OneToMany, IsBackReference=true)]
+		[Association(ThisKey="Id", OtherKey="Id", CanBeNull=true)]
 		public IEnumerable<ListfileBuild> Buildsidforeigns { get; set; }
 
 		/// <summary>
-		/// listfile_user_id_foreign
+		/// listfile_user_id_foreign (users)
 		/// </summary>
-		[Association(ThisKey="UserId", OtherKey="Id", CanBeNull=true, Relationship=LinqToDB.Mapping.Relationship.ManyToOne, KeyName="listfile_user_id_foreign", BackReferenceName="Listfileuseridforeigns")]
+		[Association(ThisKey="UserId", OtherKey="Id", CanBeNull=true)]
 		public User User { get; set; }
 
 		/// <summary>
-		/// listfile_version_id_foreign_BackReference
+		/// listfile_version_id_foreign_BackReference (listfile_version)
 		/// </summary>
-		[Association(ThisKey="Id", OtherKey="Id", CanBeNull=true, Relationship=LinqToDB.Mapping.Relationship.OneToMany, IsBackReference=true)]
+		[Association(ThisKey="Id", OtherKey="Id", CanBeNull=true)]
 		public IEnumerable<ListfileVersion> Versionidforeigns { get; set; }
 
 		#endregion
@@ -255,15 +255,15 @@ namespace WoWTrace.Backend.DataModels
 		#region Associations
 
 		/// <summary>
-		/// listfile_builds_buildid_foreign
+		/// listfile_builds_buildid_foreign (build)
 		/// </summary>
-		[Association(ThisKey="BuildId", OtherKey="Id", CanBeNull=false, Relationship=LinqToDB.Mapping.Relationship.ManyToOne, KeyName="listfile_builds_buildid_foreign", BackReferenceName="Listfilebuildsbuildidforeigns")]
+		[Association(ThisKey="BuildId", OtherKey="Id", CanBeNull=false)]
 		public Build Build { get; set; }
 
 		/// <summary>
-		/// listfile_builds_id_foreign
+		/// listfile_builds_id_foreign (listfile)
 		/// </summary>
-		[Association(ThisKey="Id", OtherKey="Id", CanBeNull=false, Relationship=LinqToDB.Mapping.Relationship.ManyToOne, KeyName="listfile_builds_id_foreign", BackReferenceName="Buildsidforeigns")]
+		[Association(ThisKey="Id", OtherKey="Id", CanBeNull=false)]
 		public Listfile Listfile { get; set; }
 
 		#endregion
@@ -286,15 +286,15 @@ namespace WoWTrace.Backend.DataModels
 		#region Associations
 
 		/// <summary>
-		/// listfile_suggestion_revieweruserid_foreign
+		/// listfile_suggestion_revieweruserid_foreign (users)
 		/// </summary>
-		[Association(ThisKey="ReviewerUserId", OtherKey="Id", CanBeNull=true, Relationship=LinqToDB.Mapping.Relationship.ManyToOne, KeyName="listfile_suggestion_revieweruserid_foreign", BackReferenceName="Listfilesuggestionrevieweruseridforeigns")]
+		[Association(ThisKey="ReviewerUserId", OtherKey="Id", CanBeNull=true)]
 		public User ReviewerUser { get; set; }
 
 		/// <summary>
-		/// listfile_suggestion_userid_foreign
+		/// listfile_suggestion_userid_foreign (users)
 		/// </summary>
-		[Association(ThisKey="UserId", OtherKey="Id", CanBeNull=false, Relationship=LinqToDB.Mapping.Relationship.ManyToOne, KeyName="listfile_suggestion_userid_foreign", BackReferenceName="Listfilesuggestionuseridforeigns")]
+		[Association(ThisKey="UserId", OtherKey="Id", CanBeNull=false)]
 		public User User { get; set; }
 
 		#endregion
@@ -319,15 +319,15 @@ namespace WoWTrace.Backend.DataModels
 		#region Associations
 
 		/// <summary>
-		/// listfile_version_buildid_foreign
+		/// listfile_version_buildid_foreign (build)
 		/// </summary>
-		[Association(ThisKey="FirstBuildId", OtherKey="Id", CanBeNull=false, Relationship=LinqToDB.Mapping.Relationship.ManyToOne, KeyName="listfile_version_buildid_foreign", BackReferenceName="Listfileversionbuildidforeigns")]
+		[Association(ThisKey="FirstBuildId", OtherKey="Id", CanBeNull=false)]
 		public Build FirstBuild { get; set; }
 
 		/// <summary>
-		/// listfile_version_id_foreign
+		/// listfile_version_id_foreign (listfile)
 		/// </summary>
-		[Association(ThisKey="Id", OtherKey="Id", CanBeNull=false, Relationship=LinqToDB.Mapping.Relationship.ManyToOne, KeyName="listfile_version_id_foreign", BackReferenceName="Versionidforeigns")]
+		[Association(ThisKey="Id", OtherKey="Id", CanBeNull=false)]
 		public Listfile Listfile { get; set; }
 
 		#endregion
@@ -394,9 +394,9 @@ namespace WoWTrace.Backend.DataModels
 		#region Associations
 
 		/// <summary>
-		/// build_product_foreign_BackReference
+		/// build_product_foreign_BackReference (build)
 		/// </summary>
-		[Association(ThisKey="ProductColumn", OtherKey="ProductKey", CanBeNull=true, Relationship=LinqToDB.Mapping.Relationship.OneToMany, IsBackReference=true)]
+		[Association(ThisKey="ProductColumn", OtherKey="ProductKey", CanBeNull=true)]
 		public IEnumerable<Build> Buildforeigns { get; set; }
 
 		#endregion
@@ -415,9 +415,9 @@ namespace WoWTrace.Backend.DataModels
 		#region Associations
 
 		/// <summary>
-		/// role_users_role_id_foreign_BackReference
+		/// role_users_role_id_foreign_BackReference (role_users)
 		/// </summary>
-		[Association(ThisKey="Id", OtherKey="RoleId", CanBeNull=true, Relationship=LinqToDB.Mapping.Relationship.OneToMany, IsBackReference=true)]
+		[Association(ThisKey="Id", OtherKey="RoleId", CanBeNull=true)]
 		public IEnumerable<RoleUser> Roleusersroleidforeigns { get; set; }
 
 		#endregion
@@ -432,15 +432,15 @@ namespace WoWTrace.Backend.DataModels
 		#region Associations
 
 		/// <summary>
-		/// role_users_role_id_foreign
+		/// role_users_role_id_foreign (roles)
 		/// </summary>
-		[Association(ThisKey="RoleId", OtherKey="Id", CanBeNull=false, Relationship=LinqToDB.Mapping.Relationship.ManyToOne, KeyName="role_users_role_id_foreign", BackReferenceName="Roleusersroleidforeigns")]
+		[Association(ThisKey="RoleId", OtherKey="Id", CanBeNull=false)]
 		public Role Role { get; set; }
 
 		/// <summary>
-		/// role_users_user_id_foreign
+		/// role_users_user_id_foreign (users)
 		/// </summary>
-		[Association(ThisKey="UserId", OtherKey="Id", CanBeNull=false, Relationship=LinqToDB.Mapping.Relationship.ManyToOne, KeyName="role_users_user_id_foreign", BackReferenceName="Roleuseridforeigns")]
+		[Association(ThisKey="UserId", OtherKey="Id", CanBeNull=false)]
 		public User User { get; set; }
 
 		#endregion
@@ -462,27 +462,27 @@ namespace WoWTrace.Backend.DataModels
 		#region Associations
 
 		/// <summary>
-		/// listfile_suggestion_revieweruserid_foreign_BackReference
+		/// listfile_suggestion_revieweruserid_foreign_BackReference (listfile_suggestion)
 		/// </summary>
-		[Association(ThisKey="Id", OtherKey="ReviewerUserId", CanBeNull=true, Relationship=LinqToDB.Mapping.Relationship.OneToMany, IsBackReference=true)]
+		[Association(ThisKey="Id", OtherKey="ReviewerUserId", CanBeNull=true)]
 		public IEnumerable<ListfileSuggestion> Listfilesuggestionrevieweruseridforeigns { get; set; }
 
 		/// <summary>
-		/// listfile_suggestion_userid_foreign_BackReference
+		/// listfile_suggestion_userid_foreign_BackReference (listfile_suggestion)
 		/// </summary>
-		[Association(ThisKey="Id", OtherKey="UserId", CanBeNull=true, Relationship=LinqToDB.Mapping.Relationship.OneToMany, IsBackReference=true)]
+		[Association(ThisKey="Id", OtherKey="UserId", CanBeNull=true)]
 		public IEnumerable<ListfileSuggestion> Listfilesuggestionuseridforeigns { get; set; }
 
 		/// <summary>
-		/// listfile_user_id_foreign_BackReference
+		/// listfile_user_id_foreign_BackReference (listfile)
 		/// </summary>
-		[Association(ThisKey="Id", OtherKey="UserId", CanBeNull=true, Relationship=LinqToDB.Mapping.Relationship.OneToMany, IsBackReference=true)]
+		[Association(ThisKey="Id", OtherKey="UserId", CanBeNull=true)]
 		public IEnumerable<Listfile> Listfileuseridforeigns { get; set; }
 
 		/// <summary>
-		/// role_users_user_id_foreign_BackReference
+		/// role_users_user_id_foreign_BackReference (role_users)
 		/// </summary>
-		[Association(ThisKey="Id", OtherKey="UserId", CanBeNull=true, Relationship=LinqToDB.Mapping.Relationship.OneToMany, IsBackReference=true)]
+		[Association(ThisKey="Id", OtherKey="UserId", CanBeNull=true)]
 		public IEnumerable<RoleUser> Roleuseridforeigns { get; set; }
 
 		#endregion
@@ -592,5 +592,3 @@ namespace WoWTrace.Backend.DataModels
 		}
 	}
 }
-
-#pragma warning restore 1591
